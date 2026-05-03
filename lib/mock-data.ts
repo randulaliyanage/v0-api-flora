@@ -275,6 +275,8 @@ export const STORE_LOCATION = {
   address: "27 Temple Road, Maharagama, Western Province, Sri Lanka",
   lat: 6.846,
   lng: 79.927,
+  image: "/hero-bouquet.jpg", // This uses the main image from your public folder
+  github: "https://github.com/randulaliyanage/v0-api-flora"
 }
 
 export const DELIVERY_BASE_LKR = 200
