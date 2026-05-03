@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { getSupabaseEnv } from "./env"
 
 /**
  * Refresh the Supabase session on every request and apply route protection
@@ -14,16 +15,14 @@ export async function updateSession(request: NextRequest) {
   // Forward pathname for server components
   supabaseResponse.headers.set("x-pathname", pathname)
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const env = getSupabaseEnv()
 
-  // If Supabase isn't configured yet, allow all traffic through so the
-  // app continues to render. Auth gating activates once env vars are set.
-  if (!supabaseUrl || !supabaseKey) {
-    return supabaseResponse
-  }
+  // If Supabase isn't configured yet (or env vars are placeholders), allow all
+  // traffic through so the app continues to render. Auth gating activates
+  // once valid env vars are set.
+  if (!env) return supabaseResponse
 
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+  const supabase = createServerClient(env.url, env.anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll()

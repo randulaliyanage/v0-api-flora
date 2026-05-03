@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react"
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js"
-import { createClient } from "@/lib/supabase/client"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 
 export interface Profile {
   id: string
@@ -31,12 +31,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase: SupabaseClient | null = useMemo(() => {
-    if (
-      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    ) {
-      return null
-    }
+    if (!isSupabaseConfigured()) return null
     try {
       return createClient()
     } catch {
