@@ -136,8 +136,8 @@ export default function HomePage() {
             </p>
           </div>
           <div
-            style={{ overflow: "visible" }}
-            className="grid grid-cols-2 gap-x-6 gap-y-16 pt-12 md:grid-cols-4 md:gap-x-8"
+            style={{ overflow: "visible", rowGap: "80px" }}
+            className="grid grid-cols-2 gap-x-6 md:grid-cols-4 md:gap-x-8"
           >
             {popular.map((flower) => (
               <FloralCard key={flower.id} flower={flower} />
@@ -156,8 +156,8 @@ export default function HomePage() {
             </h2>
           </div>
           <div
-            style={{ overflow: "visible" }}
-            className="grid grid-cols-2 gap-x-6 gap-y-16 pt-12 md:grid-cols-3 md:gap-x-8 lg:grid-cols-4"
+            style={{ overflow: "visible", rowGap: "80px" }}
+            className="grid grid-cols-2 gap-x-6 md:grid-cols-3 md:gap-x-8 lg:grid-cols-4"
           >
             {flowers.map((flower) => (
               <FloralCard key={flower.id} flower={flower} />
