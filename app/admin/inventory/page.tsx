@@ -150,11 +150,21 @@ export default function AdminInventoryPage() {
                 const low = isLowStock(f)
                 const pct = Math.min(100, (f.stock_count / 60) * 100)
                 return (
-                  <tr key={f.id} className="border-b border-border-subtle hover:bg-parchment">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="relative h-12 w-12 overflow-hidden rounded-full bg-petal-pink">
-                          <Image src={f.image_url} alt={f.name} fill sizes="48px" className="object-cover" />
+                  <tr key={f.id} className="group border-b border-border-subtle hover:bg-parchment">
+                    <td className="relative px-6 py-4">
+                      <div className="flex items-center gap-4">
+                        {/* Arrangement Header thumbnail — overflows above row */}
+                        <div className="relative h-14 w-14 shrink-0">
+                          <div className="absolute inset-x-0 -top-3 mx-auto h-16 w-16 rounded-full bg-petal-pink/70 blur-md transition-opacity group-hover:opacity-100 opacity-80" />
+                          <div className="absolute -top-3 left-1/2 h-16 w-16 -translate-x-1/2 overflow-hidden rounded-full bg-petal-pink ring-4 ring-white shadow-[0_8px_20px_-8px_rgba(153,0,72,0.35)]">
+                            <Image
+                              src={f.image_url}
+                              alt={f.name}
+                              fill
+                              sizes="64px"
+                              className="object-cover transition-transform duration-500 group-hover:scale-110"
+                            />
+                          </div>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-foreground">{f.name}</p>
@@ -230,10 +240,13 @@ export default function AdminInventoryPage() {
             const low = isLowStock(f)
             const pct = Math.min(100, (f.stock_count / 60) * 100)
             return (
-              <div key={f.id} className="rounded-2xl bg-parchment p-4">
-                <div className="flex items-center gap-3">
-                  <div className="relative h-12 w-12 overflow-hidden rounded-full bg-petal-pink">
-                    <Image src={f.image_url} alt={f.name} fill sizes="48px" className="object-cover" />
+              <div key={f.id} className="relative rounded-2xl bg-parchment p-4 pt-8">
+                <div className="flex items-center gap-4">
+                  {/* Arrangement Header thumbnail — overflows above card */}
+                  <div className="relative h-14 w-14 shrink-0">
+                    <div className="absolute -top-6 left-1/2 h-16 w-16 -translate-x-1/2 overflow-hidden rounded-full bg-petal-pink ring-4 ring-white shadow-[0_8px_20px_-8px_rgba(153,0,72,0.35)]">
+                      <Image src={f.image_url} alt={f.name} fill sizes="64px" className="object-cover" />
+                    </div>
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">{f.name}</p>
