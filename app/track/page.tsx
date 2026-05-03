@@ -1,189 +1,202 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import { Navbar } from '@/components/navbar'
-import { OrderProgressBar } from '@/components/order-progress-bar'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { InputGroup, InputGroupInput, InputGroupAddon } from '@/components/ui/input-group'
-import { sampleOrders, products } from '@/lib/data'
-import { Search, MapPin, Clock } from 'lucide-react'
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
+import { Search, MapPin, Clock, AlertCircle } from "lucide-react"
+import { Navbar } from "@/components/navbar"
+import { OrderProgressTracker } from "@/components/order-progress-tracker"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { getOrderById, formatLKR } from "@/lib/mock-data"
+import type { Order } from "@/lib/types"
 
-export default function TrackPage() {
-  const [orderId, setOrderId] = useState('')
-  const [searchedOrder, setSearchedOrder] = useState<typeof sampleOrders[0] | null>(null)
+function TrackContent() {
+  const params = useSearchParams()
+  const initial = params.get("id") ?? ""
+  const [orderId, setOrderId] = useState(initial)
+  const [order, setOrder] = useState<Order | null>(null)
   const [notFound, setNotFound] = useState(false)
 
+  useEffect(() => {
+    if (initial) {
+      const found = getOrderById(initial)
+      if (found) setOrder(found)
+      else if (initial.startsWith("FLR-")) {
+        // Show a synthetic order for newly created references
+        setOrder({
+          id: initial,
+          customer_id: "guest",
+          customer_name: "You",
+          customer_phone: "+94 ••• ••• ••",
+          status: "placed",
+          flowers: [],
+          total_lkr: 0,
+          delivery_type: "delivery",
+          delivery_fee_lkr: 0,
+          scheduled_date: new Date().toISOString().slice(0, 10),
+          created_at: new Date().toISOString(),
+        })
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleSearch = () => {
-    const order = sampleOrders.find(
-      (o) => o.id.toLowerCase() === orderId.toLowerCase()
-    )
-    if (order) {
-      setSearchedOrder(order)
+    const found = getOrderById(orderId.trim())
+    if (found) {
+      setOrder(found)
       setNotFound(false)
     } else {
-      setSearchedOrder(null)
+      setOrder(null)
       setNotFound(true)
     }
   }
 
-  const getOrderItems = (order: typeof sampleOrders[0]) => {
-    return order.items.map((item) => {
-      const product = products.find((p) => p.id === item.productId)
-      return {
-        name: product?.name || 'Unknown',
-        quantity: item.quantity,
-        price: product?.price || 0,
-      }
-    })
-  }
-
   return (
     <div className="min-h-screen bg-parchment">
-      <Navbar />
+      <Navbar cartCount={0} />
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="font-serif text-4xl text-foreground mb-4">Track Your Order</h1>
-            <p className="text-muted-foreground">
-              Enter your order ID to see the current status of your bouquet
-            </p>
-          </div>
-
-          {/* Search Box */}
-          <Card className="bg-card border border-border-subtle mb-8">
-            <CardContent className="pt-6">
-              <div className="flex gap-4">
-                <InputGroup className="flex-1">
-                  <InputGroupInput
-                    placeholder="Enter Order ID (e.g., ORD-2024-001)"
-                    value={orderId}
-                    onChange={(e) => setOrderId(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="bg-parchment border-border-subtle"
-                  />
-                  <InputGroupAddon position="left">
-                    <Search className="w-4 h-4 text-muted-foreground" />
-                  </InputGroupAddon>
-                </InputGroup>
-                <Button
-                  onClick={handleSearch}
-                  className="bg-rose-velvet hover:bg-rose-velvet/90 text-primary-foreground"
-                >
-                  Track
-                </Button>
-              </div>
-              
-              {/* Sample order hint */}
-              <p className="text-xs text-muted-foreground mt-3">
-                Try: ORD-2024-001, ORD-2024-002, ORD-2024-003
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Not Found */}
-          {notFound && (
-            <Card className="bg-card border border-border-subtle mb-8">
-              <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">
-                  No order found with ID &quot;{orderId}&quot;
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Please check your order ID and try again
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Order Found */}
-          {searchedOrder && (
-            <div className="flex flex-col gap-8">
-              {/* Progress Bar */}
-              <Card className="bg-card border border-border-subtle">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="font-serif text-xl">Order Status</CardTitle>
-                    <span className="text-sm text-muted-foreground">{searchedOrder.id}</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <OrderProgressBar status={searchedOrder.status} />
-                </CardContent>
-              </Card>
-
-              {/* Order Details */}
-              <Card className="bg-card border border-border-subtle">
-                <CardHeader>
-                  <CardTitle className="font-serif text-xl">Order Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col gap-6">
-                    {/* Items */}
-                    <div>
-                      <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3 font-sans">
-                        Items
-                      </p>
-                      <ul className="space-y-2">
-                        {getOrderItems(searchedOrder).map((item) => (
-                          <li key={item.name} className="flex justify-between text-sm">
-                            <span className="text-foreground">
-                              {item.name} x {item.quantity}
-                            </span>
-                            <span className="text-muted-foreground">
-                              LKR {(item.price * item.quantity).toLocaleString()}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Delivery Info */}
-                    <div className="border-t border-border-subtle pt-6">
-                      <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3 font-sans">
-                        Delivery Information
-                      </p>
-                      <div className="flex flex-col gap-3">
-                        <div className="flex items-start gap-3">
-                          <MapPin className="w-5 h-5 text-rose-velvet flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm text-foreground">{searchedOrder.deliveryAddress}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Delivery fee: LKR {searchedOrder.deliveryFee}
-                            </p>
-                          </div>
-                        </div>
-                        {searchedOrder.estimatedTime && (
-                          <div className="flex items-start gap-3">
-                            <Clock className="w-5 h-5 text-rose-velvet flex-shrink-0 mt-0.5" />
-                            <div>
-                              <p className="text-sm text-foreground">Estimated Delivery</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {searchedOrder.estimatedTime}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Customer Info */}
-                    <div className="border-t border-border-subtle pt-6">
-                      <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3 font-sans">
-                        Customer
-                      </p>
-                      <p className="text-sm text-foreground">{searchedOrder.customer}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{searchedOrder.phone}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+      <main className="mx-auto max-w-3xl px-4 py-12 md:py-20">
+        <div className="mb-10 text-center">
+          <p className="label-eyebrow mb-3">Track Order</p>
+          <h1 className="font-serif text-3xl italic text-foreground md:text-5xl">
+            Where are my blooms?
+          </h1>
+          <p className="mt-3 text-sm text-text-muted">
+            Enter your order reference to see live progress.
+          </p>
         </div>
-      </div>
+
+        {/* Search */}
+        <div className="rounded-3xl border border-border-subtle bg-white p-3">
+          <div className="flex items-center gap-2">
+            <Input
+              value={orderId}
+              onChange={(e) => setOrderId(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="e.g. FLR-2418"
+              className="h-12 flex-1 rounded-2xl border-0 bg-transparent px-5 text-base shadow-none focus-visible:ring-0"
+            />
+            <Button
+              onClick={handleSearch}
+              size="icon"
+              className="h-12 w-12 shrink-0 rounded-full bg-rose-velvet text-white hover:bg-rose-velvet-hover"
+              aria-label="Look up order"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="mt-2 px-2 text-xs text-text-muted">
+            Demo: try <span className="font-mono text-rose-velvet">FLR-2418</span> or{" "}
+            <span className="font-mono text-rose-velvet">FLR-2421</span>
+          </p>
+        </div>
+
+        {notFound && (
+          <div className="mt-6 flex items-center gap-3 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
+            <AlertCircle className="h-4 w-4" />
+            We couldn&apos;t find that order. Double-check the reference and try again.
+          </div>
+        )}
+
+        {order && (
+          <div className="mt-10 space-y-8">
+            {/* Progress */}
+            <div className="rounded-3xl border border-border-subtle bg-white p-6 md:p-10">
+              <div className="mb-8 flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between">
+                <div>
+                  <p className="label-eyebrow mb-1">Reference</p>
+                  <p className="font-serif text-2xl text-rose-velvet">{order.id}</p>
+                </div>
+                <p className="text-sm text-text-muted">
+                  Placed {new Date(order.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </p>
+              </div>
+              <OrderProgressTracker status={order.status} />
+            </div>
+
+            {/* Details */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="rounded-3xl border border-border-subtle bg-white p-6">
+                <p className="label-eyebrow mb-3">Delivery</p>
+                <div className="flex items-start gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-petal-pink text-rose-velvet">
+                    <MapPin className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {order.delivery_type === "pickup" ? "Studio Pickup" : "Home Delivery"}
+                    </p>
+                    <p className="mt-1 text-xs text-text-muted">
+                      {order.delivery_type === "pickup"
+                        ? "27 Temple Road, Maharagama"
+                        : order.delivery_address ?? "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-border-subtle bg-white p-6">
+                <p className="label-eyebrow mb-3">Schedule</p>
+                <div className="flex items-start gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-petal-pink text-rose-velvet">
+                    <Clock className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {new Date(order.scheduled_date).toLocaleDateString("en-US", {
+                        weekday: "long",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                    <p className="mt-1 text-xs capitalize text-text-muted">
+                      {order.scheduled_slot ?? "—"} window
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Items */}
+            {order.flowers.length > 0 && (
+              <div className="rounded-3xl border border-border-subtle bg-white p-6">
+                <p className="label-eyebrow mb-4">Your bouquet</p>
+                <ul className="divide-y divide-border-subtle">
+                  {order.flowers.map((item) => (
+                    <li
+                      key={item.flower_id}
+                      className="flex items-center justify-between py-3 text-sm"
+                    >
+                      <span className="text-foreground">
+                        <span className="font-medium">{item.flower_name}</span>
+                        <span className="ml-2 text-text-muted">×{item.quantity}</span>
+                      </span>
+                      <span className="font-medium text-text-muted tabular-nums">
+                        {formatLKR(item.price_lkr * item.quantity)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-4 flex items-baseline justify-between border-t border-border-subtle pt-4">
+                  <span className="label-eyebrow">Total paid</span>
+                  <span className="font-serif text-xl text-rose-velvet">
+                    {formatLKR(order.total_lkr + order.delivery_fee_lkr)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
     </div>
+  )
+}
+
+export default function TrackPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-parchment" />}>
+      <TrackContent />
+    </Suspense>
   )
 }

@@ -1,116 +1,50 @@
-'use client'
+"use client"
 
-import { cn } from '@/lib/utils'
-import { Check } from 'lucide-react'
-
-interface Step {
-  label: string
-  description?: string
-}
+import { Check } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface StepIndicatorProps {
-  steps: Step[]
+  steps: { label: string }[]
   current: number
-  className?: string
+  onSelect?: (step: number) => void
 }
 
-export function StepIndicator({ steps, current, className }: StepIndicatorProps) {
+export function StepIndicator({ steps, current, onSelect }: StepIndicatorProps) {
   return (
-    <div className={cn("w-full", className)}>
-      {/* Desktop horizontal */}
-      <div className="hidden md:flex items-center justify-between">
-        {steps.map((step, index) => {
-          const isCompleted = index < current
-          const isCurrent = index === current
-          const isPending = index > current
-
+    <div className="w-full">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 md:gap-3">
+        {steps.map((step, idx) => {
+          const stepNum = idx + 1
+          const isActive = stepNum === current
+          const isPast = stepNum < current
+          const isFuture = stepNum > current
           return (
-            <div key={step.label} className="flex-1 flex items-center">
-              <div className="flex flex-col items-center gap-2">
-                <div
-                  className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
-                    isCompleted && "bg-rose-velvet text-primary-foreground",
-                    isCurrent && "bg-rose-velvet text-primary-foreground ring-4 ring-rose-velvet/20",
-                    isPending && "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {isCompleted ? (
-                    <Check className="w-5 h-5" />
-                  ) : (
-                    index + 1
-                  )}
-                </div>
-                <div className="text-center">
-                  <p className={cn(
-                    "text-xs uppercase tracking-widest font-sans",
-                    (isCompleted || isCurrent) ? "text-foreground" : "text-muted-foreground"
-                  )}>
-                    {step.label}
-                  </p>
-                  {step.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
-                  )}
-                </div>
-              </div>
-              {index < steps.length - 1 && (
-                <div
-                  className={cn(
-                    "flex-1 h-0.5 mx-4",
-                    index < current ? "bg-rose-velvet" : "bg-muted"
-                  )}
-                />
+            <button
+              key={step.label}
+              type="button"
+              onClick={() => onSelect && stepNum <= current && onSelect(stepNum)}
+              disabled={isFuture}
+              className={cn(
+                "flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-medium transition-all md:px-5 md:py-2.5 md:text-sm",
+                isActive && "bg-rose-velvet text-white shadow-[0_8px_24px_-8px_rgba(153,0,72,0.5)]",
+                isPast && "bg-petal-pink text-rose-velvet hover:bg-petal-pink/80",
+                isFuture && "bg-surface-container text-text-muted",
               )}
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Mobile vertical */}
-      <div className="md:hidden flex flex-col gap-4">
-        {steps.map((step, index) => {
-          const isCompleted = index < current
-          const isCurrent = index === current
-          const isPending = index > current
-
-          return (
-            <div key={step.label} className="flex items-start gap-4">
-              <div className="flex flex-col items-center">
-                <div
+            >
+              {isPast ? (
+                <Check className="h-3.5 w-3.5" />
+              ) : (
+                <span
                   className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
-                    isCompleted && "bg-rose-velvet text-primary-foreground",
-                    isCurrent && "bg-rose-velvet text-primary-foreground ring-4 ring-rose-velvet/20",
-                    isPending && "bg-muted text-muted-foreground"
+                    "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold",
+                    isActive ? "bg-white/20" : "bg-rose-velvet/10",
                   )}
                 >
-                  {isCompleted ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    index + 1
-                  )}
-                </div>
-                {index < steps.length - 1 && (
-                  <div
-                    className={cn(
-                      "w-0.5 h-8 mt-2",
-                      index < current ? "bg-rose-velvet" : "bg-muted"
-                    )}
-                  />
-                )}
-              </div>
-              <div className="pt-1">
-                <p className={cn(
-                  "text-xs uppercase tracking-widest font-sans",
-                  (isCompleted || isCurrent) ? "text-foreground" : "text-muted-foreground"
-                )}>
-                  {step.label}
-                </p>
-                {step.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
-                )}
-              </div>
-            </div>
+                  {stepNum}
+                </span>
+              )}
+              <span className="whitespace-nowrap">{step.label}</span>
+            </button>
           )
         })}
       </div>

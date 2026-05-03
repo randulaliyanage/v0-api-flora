@@ -1,86 +1,97 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { Navbar } from '@/components/navbar'
-import { FloralCard } from '@/components/floral-card'
-import { CategoryCard } from '@/components/category-card'
-import { Button } from '@/components/ui/button'
-import { products, categories } from '@/lib/data'
+import Image from "next/image"
+import Link from "next/link"
+import { ArrowRight } from "lucide-react"
+import { Navbar } from "@/components/navbar"
+import { FloralCard } from "@/components/floral-card"
+import { CategoryCard } from "@/components/category-card"
+import { Button } from "@/components/ui/button"
+import { flowers } from "@/lib/mock-data"
+
+const CATEGORIES = [
+  { id: "flower", label: "Flowers", icon: "flower" as const, count: 24 },
+  { id: "confection", label: "Confections", icon: "confection" as const, count: 12 },
+  { id: "gift", label: "Gifts", icon: "gift" as const, count: 18 },
+  { id: "balloon", label: "Balloons", icon: "balloon" as const, count: 9 },
+]
 
 export default function HomePage() {
-  const [cart, setCart] = useState<{ productId: string; quantity: number }[]>([])
-
-  const addToCart = (productId: string) => {
-    setCart((prev) => {
-      const existing = prev.find((item) => item.productId === productId)
-      if (existing) {
-        return prev.map((item) =>
-          item.productId === productId
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
-      }
-      return [...prev, { productId, quantity: 1 }]
-    })
-  }
-
-  const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0)
-  const flowerProducts = products.filter((p) => p.category === 'flowers')
+  const popular = flowers.slice(0, 4)
 
   return (
     <div className="min-h-screen bg-parchment">
-      <Navbar cartCount={cartCount} />
+      <Navbar cartCount={0} />
 
-      {/* Hero Section */}
-      <section className="relative py-20 px-4 overflow-visible">
-        <div className="container mx-auto">
-          <div className="relative bg-card border border-border-subtle rounded-lg overflow-visible">
-            <div className="grid md:grid-cols-2 gap-8 p-8 md:p-12">
-              {/* Text Content */}
-              <div className="flex flex-col justify-center gap-6">
-                <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-foreground leading-tight text-balance">
-                  Blooms, Curated for You.
+      {/* HERO */}
+      <section className="px-4 pb-24 pt-10 md:px-8 md:pt-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="relative overflow-visible rounded-[2rem] bg-petal-pink px-6 pb-12 pt-12 md:px-14 md:pb-20 md:pt-16">
+            <div className="grid items-center gap-10 md:grid-cols-2">
+              {/* Copy */}
+              <div className="relative z-10 max-w-xl">
+                <p className="label-eyebrow mb-5">Sri Lankan Floral Atelier</p>
+                <h1 className="font-serif text-4xl italic leading-[1.05] text-foreground md:text-6xl lg:text-7xl">
+                  Blooms,
+                  <br />
+                  Arranged
+                  <br />
+                  for You.
                 </h1>
-                <p className="text-muted-foreground text-lg max-w-md">
-                  Experience the art of floral design with our AI-powered custom bouquet service. 
-                  From your vision to your doorstep, crafted with care in Colombo.
+                <p className="mt-6 max-w-md text-base leading-relaxed text-text-muted md:text-lg">
+                  AI-curated bouquets, hand-tied in our Maharagama studio and
+                  delivered the same day across Colombo.
                 </p>
-                <div>
-                  <Button asChild size="lg" className="bg-rose-velvet hover:bg-rose-velvet/90 text-primary-foreground">
-                    <Link href="/create">Create Your Bouquet</Link>
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="rounded-full bg-rose-velvet px-7 text-white hover:bg-rose-velvet-hover"
+                  >
+                    <Link href="/create" className="group inline-flex items-center gap-2">
+                      Create Your Bouquet
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="lg"
+                    className="rounded-full text-foreground hover:bg-white/40 hover:text-rose-velvet"
+                  >
+                    <Link href="#shop">Browse Shop</Link>
                   </Button>
                 </div>
-              </div>
 
-              {/* Hero Image - Breaking out of container */}
-              <div className="relative hidden md:block">
-                <div className="absolute -top-8 -right-8 -bottom-8 w-full">
-                  <div className="relative w-full h-full min-h-80">
-                    <Image
-                      src="/hero-bouquet.jpg"
-                      alt="Beautiful floral bouquet arrangement"
-                      fill
-                      className="object-cover rounded-lg"
-                      priority
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                    />
+                <div className="mt-10 flex items-center gap-6 border-t border-rose-velvet/10 pt-6">
+                  <div>
+                    <p className="font-serif text-2xl text-rose-velvet">2,400+</p>
+                    <p className="label-eyebrow">Bouquets Delivered</p>
+                  </div>
+                  <div className="h-10 w-px bg-rose-velvet/20" />
+                  <div>
+                    <p className="font-serif text-2xl text-rose-velvet">4.9★</p>
+                    <p className="label-eyebrow">Customer Rating</p>
                   </div>
                 </div>
               </div>
 
-              {/* Mobile Hero Image */}
-              <div className="relative md:hidden -mx-8 -mb-8 mt-4">
-                <div className="relative w-full h-64">
-                  <Image
-                    src="/hero-bouquet.jpg"
-                    alt="Beautiful floral bouquet arrangement"
-                    fill
-                    className="object-cover rounded-b-lg"
-                    priority
-                    sizes="100vw"
-                  />
+              {/* Hero image — overflows up by 40px */}
+              <div className="relative h-[420px] md:h-[520px]">
+                <div
+                  className="absolute inset-x-0 mx-auto md:left-auto md:right-0"
+                  style={{ top: "-40px", bottom: "-40px", width: "100%", maxWidth: "560px" }}
+                >
+                  <div className="relative h-full w-full overflow-hidden rounded-[2rem] shadow-[0_30px_80px_-20px_rgba(153,0,72,0.35)]">
+                    <Image
+                      src="/hero-bouquet.jpg"
+                      alt="A luxurious pink and cream floral bouquet"
+                      fill
+                      priority
+                      sizes="(max-width: 768px) 100vw, 560px"
+                      className="object-cover"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -88,57 +99,112 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section */}
-      <section className="py-12 px-4">
-        <div className="container mx-auto">
-          <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-8 text-center font-sans">
-            Browse Categories
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {categories.map((category) => (
-              <CategoryCard
-                key={category.id}
-                id={category.id}
-                name={category.name}
-                icon={category.icon as 'flower' | 'candy' | 'gift' | 'balloon'}
-              />
+      {/* CATEGORIES */}
+      <section className="px-4 py-20 md:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-10 flex items-end justify-between">
+            <div>
+              <p className="label-eyebrow mb-3">Curated Categories</p>
+              <h2 className="font-serif text-3xl text-foreground md:text-4xl">
+                Find the perfect gesture
+              </h2>
+            </div>
+            <Link
+              href="/create"
+              className="hidden text-sm font-medium text-rose-velvet hover:text-rose-velvet-hover md:inline-flex md:items-center md:gap-1"
+            >
+              View all <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-8">
+            {CATEGORIES.map((c) => (
+              <CategoryCard key={c.id} label={c.label} icon={c.icon} count={c.count} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* Popular Items Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto">
-          <h2 className="font-serif text-3xl text-foreground mb-2 text-center">
-            Popular Items
-          </h2>
-          <p className="text-muted-foreground text-center mb-12">
-            Our most loved blooms, handpicked for every occasion
-          </p>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 gap-y-16 pt-8">
-            {flowerProducts.map((product) => (
-              <FloralCard
-                key={product.id}
-                name={product.name}
-                price={product.price}
-                image={product.image}
-                stock={product.stock}
-                onAdd={() => addToCart(product.id)}
-              />
+      {/* POPULAR ITEMS — surface-container background */}
+      <section id="shop" className="bg-surface-container px-4 py-20 md:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 flex flex-col items-center text-center">
+            <p className="label-eyebrow mb-3">This Season</p>
+            <h2 className="font-serif text-3xl text-foreground md:text-4xl">Popular Stems</h2>
+            <p className="mt-3 max-w-md text-sm text-text-muted">
+              Hand-selected blooms our florists are reaching for this week.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-6 pt-12 md:grid-cols-4 md:gap-8">
+            {popular.map((flower) => (
+              <FloralCard key={flower.id} flower={flower} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* Mobile Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-parchment/95 backdrop-blur border-t border-border-subtle md:hidden">
-        <Button asChild className="w-full bg-rose-velvet hover:bg-rose-velvet/90 text-primary-foreground">
+      {/* FULL CATALOG */}
+      <section className="px-4 py-20 md:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-10">
+            <p className="label-eyebrow mb-3">The Full Garden</p>
+            <h2 className="font-serif text-3xl text-foreground md:text-4xl">
+              Every bloom, by the stem
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 gap-6 pt-12 md:grid-cols-3 md:gap-8 lg:grid-cols-4">
+            {flowers.map((flower) => (
+              <FloralCard key={flower.id} flower={flower} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA BAND */}
+      <section className="px-4 pb-24 md:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="rounded-3xl bg-rose-velvet px-8 py-16 text-center text-white md:px-16 md:py-20">
+            <p className="mb-3 text-[11px] uppercase tracking-[0.2em] text-white/70">
+              Bespoke Florals
+            </p>
+            <h2 className="mx-auto max-w-2xl font-serif text-3xl italic md:text-5xl">
+              Send us a photo. We&apos;ll arrange the rest.
+            </h2>
+            <p className="mx-auto mt-4 max-w-lg text-sm text-white/80 md:text-base">
+              Upload your inspiration — our AI matches it to in-stock stems and
+              our florists do the binding.
+            </p>
+            <Button
+              asChild
+              size="lg"
+              className="mt-8 rounded-full bg-white px-8 text-rose-velvet hover:bg-petal-pink"
+            >
+              <Link href="/create">Start Creating</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-border-subtle px-4 py-10 md:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-sm text-text-muted md:flex-row">
+          <p className="font-serif text-xl italic text-rose-velvet">API Flora</p>
+          <p>27 Temple Road, Maharagama · Western Province · Sri Lanka</p>
+          <p>© 2026 API Flora</p>
+        </div>
+      </footer>
+
+      {/* Mobile sticky CTA */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-border-subtle bg-parchment p-4 md:hidden"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
+      >
+        <Button
+          asChild
+          className="w-full rounded-full bg-rose-velvet text-white hover:bg-rose-velvet-hover"
+        >
           <Link href="/create">Create Bouquet</Link>
         </Button>
       </div>
-
-      {/* Footer spacing for mobile sticky */}
       <div className="h-20 md:hidden" />
     </div>
   )
