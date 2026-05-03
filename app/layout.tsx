@@ -1,14 +1,23 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Noto_Serif, Plus_Jakarta_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const notoSerif = Noto_Serif({ 
+  subsets: ["latin"],
+  variable: '--font-noto-serif',
+  display: 'swap',
+})
+
+const plusJakartaSans = Plus_Jakarta_Sans({ 
+  subsets: ["latin"],
+  variable: '--font-plus-jakarta-sans',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'API Flora | Curated Blooms for Every Occasion',
+  description: 'AI-driven boutique floral delivery in Sri Lanka. Create custom bouquets, browse curated arrangements, and experience premium flower delivery.',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -35,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${notoSerif.variable} ${plusJakartaSans.variable} bg-parchment`}>
       <body className="font-sans antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
