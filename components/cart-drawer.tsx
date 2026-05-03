@@ -3,7 +3,7 @@
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
 import Image from "next/image"
 import { useOrder } from "@/context/OrderContext"
-import { formatLKR, flowers } from "@/lib/mock-data"
+import { formatLKR } from "@/lib/mock-data"
 
 interface CartDrawerProps {
   variant?: "sidebar" | "inline"
@@ -42,12 +42,18 @@ export function CartDrawer({ variant = "sidebar" }: CartDrawerProps) {
 
       <ul className="space-y-3">
         {state.cart.map((item) => {
-          const flower = flowers.find((f) => f.id === item.flower_id)
           return (
             <li key={item.flower_id} className="flex items-center gap-3 rounded-2xl bg-parchment p-3">
               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-petal-pink">
-                {flower?.image_url && (
-                  <Image src={flower.image_url} alt={item.flower_name} fill className="object-cover" sizes="48px" />
+                {item.flower_image && (
+                  <Image
+                    src={item.flower_image}
+                    alt={item.flower_name}
+                    fill
+                    className="object-cover"
+                    sizes="48px"
+                    unoptimized={item.flower_image.startsWith("data:")}
+                  />
                 )}
               </div>
               <div className="min-w-0 flex-1">

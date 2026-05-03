@@ -2,25 +2,96 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import Image from "next/image"
-import { Lock, Loader2 } from "lucide-react"
+import { Lock, Loader2, LogIn } from "lucide-react"
 import { useOrder } from "@/context/OrderContext"
-import { formatLKR, flowers } from "@/lib/mock-data"
+import { useAuth } from "@/context/AuthContext"
+import { formatLKR } from "@/lib/mock-data"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
+
+function generateOrderId() {
+  return `FLR-${Math.floor(Math.random() * 9000 + 1000)}`
+}
 
 export function StepPayment() {
   const router = useRouter()
   const { state, dispatch, cartSubtotal, grandTotal } = useOrder()
+  const { user, profile, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  const handlePay = () => {
+  const handlePay = async () => {
+    if (!user) return
+    setErrorMsg(null)
     setLoading(true)
     dispatch({ type: "SET_PAYMENT_STATUS", payload: "pending" })
-    setTimeout(() => {
+
+    const orderId = generateOrderId()
+    const supabase = createClient()
+
+    try {
+      // 1. Insert order
+      const { error: orderError } = await supabase.from("orders").insert({
+        id: orderId,
+        customer_id: user.id,
+        customer_name: state.customerDetails.name || profile?.full_name || "Guest",
+        customer_phone: state.customerDetails.phone || profile?.phone || "",
+        customer_email: state.customerDetails.email || user.email || null,
+        status: "placed",
+        subtotal_lkr: cartSubtotal,
+        delivery_fee_lkr: state.deliveryFee,
+        total_lkr: grandTotal,
+        delivery_type: state.fulfillmentType,
+        delivery_address: state.fulfillmentType === "delivery" ? state.deliveryAddress : null,
+        delivery_distance_km:
+          state.fulfillmentType === "delivery" ? state.deliveryDistanceKm : null,
+        scheduled_date: state.scheduledDate,
+        scheduled_slot: state.scheduledSlot,
+        reference_image_url: state.referenceImageUrl,
+      })
+      if (orderError) throw orderError
+
+      // 2. Insert order items
+      const items = state.cart.map((c) => ({
+        order_id: orderId,
+        flower_id: c.flower_id,
+        flower_name: c.flower_name,
+        flower_image: c.flower_image ?? null,
+        quantity: c.quantity,
+        price_lkr: c.price_lkr,
+      }))
+      const { error: itemsError } = await supabase.from("order_items").insert(items)
+      if (itemsError) throw itemsError
+
+      // 3. Best-effort stock decrement. Fetch current counts then update.
+      //    (For a demo we skip true atomicity / overselling protection.)
+      for (const item of state.cart) {
+        const { data: existing } = await supabase
+          .from("flowers")
+          .select("stock_count")
+          .eq("id", item.flower_id)
+          .single()
+        if (existing) {
+          const next = Math.max(0, Number(existing.stock_count) - item.quantity)
+          await supabase
+            .from("flowers")
+            .update({ stock_count: next })
+            .eq("id", item.flower_id)
+        }
+      }
+
       dispatch({ type: "SET_PAYMENT_STATUS", payload: "success" })
-      const orderId = `FLR-${Math.floor(Math.random() * 9000 + 1000)}`
+      // Clear the cart so they start fresh next time.
+      dispatch({ type: "RESET_ORDER" })
       router.push(`/order/${orderId}/success`)
-    }, 1800)
+    } catch (err) {
+      console.error("[v0] Order placement failed:", err)
+      setErrorMsg((err as Error).message ?? "Could not place order")
+      dispatch({ type: "SET_PAYMENT_STATUS", payload: "failed" })
+      setLoading(false)
+    }
   }
 
   const formattedDate = state.scheduledDate
@@ -43,6 +114,34 @@ export function StepPayment() {
         </p>
       </div>
 
+      {/* Auth gate: customers must be signed in to place an order */}
+      {!authLoading && !user && (
+        <div className="rounded-3xl border border-rose-velvet/30 bg-petal-pink/40 p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-serif text-xl italic text-rose-velvet">
+                Sign in to complete your order
+              </p>
+              <p className="mt-1 text-sm text-text-muted">
+                We need an account so you can track this bouquet and reorder later.
+                Your cart is saved.
+              </p>
+            </div>
+            <div className="flex flex-shrink-0 gap-2">
+              <Button asChild variant="outline" className="rounded-full">
+                <Link href="/login?redirect=/create">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign in
+                </Link>
+              </Button>
+              <Button asChild className="rounded-full bg-rose-velvet text-white hover:bg-rose-velvet-hover">
+                <Link href="/signup?redirect=/create">Create account</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Order summary card */}
       <div className="overflow-hidden rounded-3xl border border-border-subtle bg-white">
         <div className="border-b border-border-subtle px-6 py-5">
@@ -53,33 +152,31 @@ export function StepPayment() {
         </div>
 
         <ul className="divide-y divide-border-subtle">
-          {state.cart.map((item) => {
-            const flower = flowers.find((f) => f.id === item.flower_id)
-            return (
-              <li key={item.flower_id} className="flex items-center gap-4 px-6 py-4">
-                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-petal-pink">
-                  {flower?.image_url && (
-                    <Image
-                      src={flower.image_url}
-                      alt={item.flower_name}
-                      fill
-                      sizes="56px"
-                      className="object-cover"
-                    />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground">{item.flower_name}</p>
-                  <p className="text-xs text-text-muted">
-                    {item.quantity} × {formatLKR(item.price_lkr)}
-                  </p>
-                </div>
-                <p className="text-sm font-medium tabular-nums text-foreground">
-                  {formatLKR(item.price_lkr * item.quantity)}
+          {state.cart.map((item) => (
+            <li key={item.flower_id} className="flex items-center gap-4 px-6 py-4">
+              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-petal-pink">
+                {item.flower_image && (
+                  <Image
+                    src={item.flower_image}
+                    alt={item.flower_name}
+                    fill
+                    sizes="56px"
+                    className="object-cover"
+                    unoptimized={item.flower_image.startsWith("data:")}
+                  />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground">{item.flower_name}</p>
+                <p className="text-xs text-text-muted">
+                  {item.quantity} × {formatLKR(item.price_lkr)}
                 </p>
-              </li>
-            )
-          })}
+              </div>
+              <p className="text-sm font-medium tabular-nums text-foreground">
+                {formatLKR(item.price_lkr * item.quantity)}
+              </p>
+            </li>
+          ))}
         </ul>
 
         <div className="space-y-2 border-t border-border-subtle bg-parchment px-6 py-5 text-sm">
@@ -137,17 +234,25 @@ export function StepPayment() {
         </dl>
       </div>
 
+      {errorMsg && (
+        <div className="rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
+          {errorMsg}
+        </div>
+      )}
+
       <Button
-        onClick={handlePay}
-        disabled={loading || state.cart.length === 0}
+        onClick={() => void handlePay()}
+        disabled={loading || state.cart.length === 0 || !user}
         size="lg"
         className="w-full rounded-full bg-rose-velvet text-white hover:bg-rose-velvet-hover"
       >
         {loading ? (
           <span className="inline-flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Processing payment…
+            Placing your order…
           </span>
+        ) : !user ? (
+          "Sign in to pay"
         ) : (
           `Pay ${formatLKR(grandTotal)}`
         )}

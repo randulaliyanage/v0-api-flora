@@ -2,6 +2,8 @@ import Link from "next/link"
 import { Check, Package, Calendar } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
+import { createClient } from "@/lib/supabase/server"
+import { formatLKR } from "@/lib/mock-data"
 
 interface SuccessPageProps {
   params: Promise<{ id: string }>
@@ -9,6 +11,24 @@ interface SuccessPageProps {
 
 export default async function OrderSuccessPage({ params }: SuccessPageProps) {
   const { id } = await params
+
+  // Best-effort fetch the order so the success page reflects the saved record.
+  let total: number | null = null
+  let scheduledDate: string | null = null
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from("orders")
+      .select("total_lkr, scheduled_date")
+      .eq("id", id)
+      .single()
+    if (data) {
+      total = Number(data.total_lkr)
+      scheduledDate = data.scheduled_date
+    }
+  } catch {
+    // RLS may block this for unauthenticated users — that's fine, we degrade gracefully.
+  }
 
   return (
     <div className="min-h-screen bg-parchment">
@@ -36,6 +56,21 @@ export default async function OrderSuccessPage({ params }: SuccessPageProps) {
           <div className="my-8 rounded-2xl bg-petal-pink/40 px-6 py-5">
             <p className="label-eyebrow mb-1">Order Reference</p>
             <p className="font-serif text-2xl text-rose-velvet">{id}</p>
+            {total !== null && (
+              <p className="mt-2 text-sm text-text-muted">
+                Total paid:{" "}
+                <span className="font-medium text-foreground">{formatLKR(total)}</span>
+                {scheduledDate ? (
+                  <>
+                    {" · "}
+                    {new Date(scheduledDate).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </>
+                ) : null}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">

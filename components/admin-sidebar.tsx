@@ -8,7 +8,6 @@ import {
   Calendar,
   Truck,
   BarChart3,
-  Settings,
   LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -19,7 +18,6 @@ const NAV = [
   { href: "/admin/capacity", label: "Capacity", icon: Calendar },
   { href: "/admin/deliveries", label: "Deliveries", icon: Truck },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
 ]
 
 export function AdminSidebar() {

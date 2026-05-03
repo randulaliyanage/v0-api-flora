@@ -2,14 +2,16 @@
 
 import { useState, useRef } from "react"
 import Image from "next/image"
-import { Upload, Sparkles, Minus, Plus } from "lucide-react"
+import { Upload, Sparkles, Minus, Plus, Loader2 } from "lucide-react"
 import { useOrder } from "@/context/OrderContext"
-import { flowers, formatLKR, isLowStock, aiSuggestion } from "@/lib/mock-data"
+import { formatLKR, isLowStock, aiSuggestion } from "@/lib/mock-data"
+import { useFlowers } from "@/lib/data/use-flowers"
 import { AIResultCard } from "@/components/ai-result-card"
 import { LowStockBadge } from "@/components/low-stock-badge"
 
 export function StepBouquet() {
   const { state, dispatch } = useOrder()
+  const { activeFlowers: flowers, isLoading } = useFlowers()
   const [analyzing, setAnalyzing] = useState(false)
   const [analyzed, setAnalyzed] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -20,16 +22,21 @@ export function StepBouquet() {
     setAnalyzed(false)
     setAnalyzing(true)
     setTimeout(() => {
-      const items = aiSuggestion.detected.map((d) => {
-        const flower = flowers.find((f) => f.id === d.flower_id)!
-        return {
-          flower_id: flower.id,
-          flower_name: flower.name,
-          flower_image: flower.image_url,
-          quantity: d.quantity,
-          price_lkr: flower.price_lkr,
-        }
-      })
+      // Map AI suggestions to currently-available flowers; fall back gracefully
+      // if a suggested stem isn't in the live catalog anymore.
+      const items = aiSuggestion.detected
+        .map((d) => {
+          const flower = flowers.find((f) => f.id === d.flower_id)
+          if (!flower) return null
+          return {
+            flower_id: flower.id,
+            flower_name: flower.name,
+            flower_image: flower.image_url,
+            quantity: d.quantity,
+            price_lkr: flower.price_lkr,
+          }
+        })
+        .filter((x): x is NonNullable<typeof x> => x !== null)
       dispatch({ type: "SET_AI_SUGGESTIONS", payload: items })
       setAnalyzing(false)
       setAnalyzed(true)
@@ -114,6 +121,19 @@ export function StepBouquet() {
           <span className="h-px flex-1 bg-border-subtle" />
         </div>
 
+        {isLoading && (
+          <div className="flex items-center justify-center py-12 text-sm text-text-muted">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading the garden…
+          </div>
+        )}
+
+        {!isLoading && flowers.length === 0 && (
+          <div className="rounded-2xl bg-petal-pink/30 p-8 text-center text-sm text-rose-velvet">
+            The studio is restocking — please check back soon.
+          </div>
+        )}
+
         {/* Parent grid MUST be overflow-visible so the floating images aren't clipped */}
         <div
           style={{ overflow: "visible" }}
@@ -146,6 +166,7 @@ export function StepBouquet() {
                     sizes="120px"
                     className="object-contain"
                     style={{ filter: "drop-shadow(0 8px 24px rgba(153,0,72,0.18))" }}
+                    unoptimized={flower.image_url.startsWith("data:")}
                   />
                 </div>
 

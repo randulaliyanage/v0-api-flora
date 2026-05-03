@@ -1,15 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 
-export default function SignupPage() {
+function SignupContent() {
   const router = useRouter()
+  const params = useSearchParams()
+  const redirect = params.get("redirect") ?? "/"
 
   const [fullName, setFullName] = useState("")
   const [phone, setPhone] = useState("")
@@ -25,7 +27,7 @@ export default function SignupPage() {
 
     try {
       const supabase = createClient()
-      const { error: authError } = await supabase.auth.signUp({
+      const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -46,8 +48,15 @@ export default function SignupPage() {
         return
       }
 
-      toast.success("Welcome to API Flora!")
-      router.push("/")
+      // If email confirmation is disabled, Supabase returns a session and the
+      // user is signed in instantly. Otherwise we need them to confirm email.
+      if (data.session) {
+        toast.success("Welcome to API Flora!")
+        router.push(redirect)
+      } else {
+        toast.success("Check your email to confirm your account.")
+        router.push(`/login?redirect=${encodeURIComponent(redirect)}`)
+      }
     } catch (err) {
       setError("Unable to create account. Please try again.")
       setLoading(false)
@@ -136,12 +145,23 @@ export default function SignupPage() {
 
           <p className="mt-6 text-center text-sm text-text-muted">
             Already have an account?{" "}
-            <Link href="/login" className="font-medium text-rose-velvet hover:underline">
+            <Link
+              href={`/login?redirect=${encodeURIComponent(redirect)}`}
+              className="font-medium text-rose-velvet hover:underline"
+            >
               Sign in
             </Link>
           </p>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-parchment" />}>
+      <SignupContent />
+    </Suspense>
   )
 }

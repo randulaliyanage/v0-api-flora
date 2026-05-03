@@ -33,9 +33,14 @@ export function Navbar() {
             Track Order
           </Link>
           {!user && (
-            <Link href="/login" className="text-text-muted transition-colors hover:text-rose-velvet">
-              Sign In
-            </Link>
+            <>
+              <Link href="/login" className="text-text-muted transition-colors hover:text-rose-velvet">
+                Sign In
+              </Link>
+              <Link href="/signup" className="text-text-muted transition-colors hover:text-rose-velvet">
+                Sign Up
+              </Link>
+            </>
           )}
         </nav>
 

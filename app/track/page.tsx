@@ -1,48 +1,107 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
-import { Search, MapPin, Clock, AlertCircle } from "lucide-react"
+import Link from "next/link"
+import { Search, MapPin, Clock, AlertCircle, Loader2 } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import { OrderProgressTracker } from "@/components/order-progress-tracker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getOrderById, formatLKR } from "@/lib/mock-data"
-import type { Order } from "@/lib/types"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
+import { useAuth } from "@/context/AuthContext"
+import type { Order, OrderItem, OrderStatus } from "@/lib/types"
+
+interface SupabaseOrderRow {
+  id: string
+  customer_name: string
+  customer_phone: string
+  status: OrderStatus
+  total_lkr: number
+  delivery_fee_lkr: number
+  delivery_type: "pickup" | "delivery"
+  delivery_address: string | null
+  delivery_distance_km: number | null
+  scheduled_date: string
+  scheduled_slot: "morning" | "afternoon" | "evening" | null
+  reference_image_url: string | null
+  created_at: string
+  order_items?: Array<{
+    flower_id: string | null
+    flower_name: string
+    flower_image: string | null
+    quantity: number
+    price_lkr: number
+  }>
+}
+
+function rowToOrder(row: SupabaseOrderRow): Order {
+  return {
+    id: row.id,
+    customer_id: "",
+    customer_name: row.customer_name,
+    customer_phone: row.customer_phone,
+    status: row.status,
+    flowers: (row.order_items ?? []).map(
+      (item): OrderItem => ({
+        flower_id: item.flower_id ?? "",
+        flower_name: item.flower_name,
+        flower_image: item.flower_image ?? undefined,
+        quantity: item.quantity,
+        price_lkr: Number(item.price_lkr),
+      }),
+    ),
+    total_lkr: Number(row.total_lkr) - Number(row.delivery_fee_lkr),
+    delivery_type: row.delivery_type,
+    delivery_address: row.delivery_address ?? undefined,
+    delivery_distance_km: row.delivery_distance_km ?? undefined,
+    delivery_fee_lkr: Number(row.delivery_fee_lkr),
+    scheduled_date: row.scheduled_date,
+    scheduled_slot: row.scheduled_slot ?? undefined,
+    reference_image_url: row.reference_image_url ?? undefined,
+    created_at: row.created_at,
+  }
+}
 
 function TrackContent() {
   const params = useSearchParams()
   const initial = params.get("id") ?? ""
+  const { user } = useAuth()
   const [orderId, setOrderId] = useState(initial)
   const [order, setOrder] = useState<Order | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [myOrders, setMyOrders] = useState<Order[]>([])
 
-  useEffect(() => {
-    if (initial) {
-      const found = getOrderById(initial)
-      if (found) setOrder(found)
-      else if (initial.startsWith("FLR-")) {
-        // Show a synthetic order for newly created references
-        setOrder({
-          id: initial,
-          customer_id: "guest",
-          customer_name: "You",
-          customer_phone: "+94 ••• ••• ••",
-          status: "placed",
-          flowers: [],
-          total_lkr: 0,
-          delivery_type: "delivery",
-          delivery_fee_lkr: 0,
-          scheduled_date: new Date().toISOString().slice(0, 10),
-          created_at: new Date().toISOString(),
-        })
+  const lookup = useCallback(async (id: string) => {
+    setSearching(true)
+    setNotFound(false)
+    let found: Order | null = null
+
+    // 1. Try Supabase
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from("orders")
+          .select(
+            "id, customer_name, customer_phone, status, total_lkr, delivery_fee_lkr, delivery_type, delivery_address, delivery_distance_km, scheduled_date, scheduled_slot, reference_image_url, created_at, order_items(flower_id, flower_name, flower_image, quantity, price_lkr)",
+          )
+          .eq("id", id)
+          .maybeSingle()
+        if (data) found = rowToOrder(data as SupabaseOrderRow)
+      } catch {
+        // ignore — fall through to mock
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
-  const handleSearch = () => {
-    const found = getOrderById(orderId.trim())
+    // 2. Fall back to mock demo orders
+    if (!found) {
+      const mock = getOrderById(id)
+      if (mock) found = mock
+    }
+
     if (found) {
       setOrder(found)
       setNotFound(false)
@@ -50,6 +109,44 @@ function TrackContent() {
       setOrder(null)
       setNotFound(true)
     }
+    setSearching(false)
+  }, [])
+
+  useEffect(() => {
+    if (initial) {
+      void lookup(initial)
+    }
+  }, [initial, lookup])
+
+  // Load this user's recent orders
+  useEffect(() => {
+    if (!user || !isSupabaseConfigured()) {
+      setMyOrders([])
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from("orders")
+        .select(
+          "id, customer_name, customer_phone, status, total_lkr, delivery_fee_lkr, delivery_type, delivery_address, delivery_distance_km, scheduled_date, scheduled_slot, reference_image_url, created_at, order_items(flower_id, flower_name, flower_image, quantity, price_lkr)",
+        )
+        .eq("customer_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5)
+      if (!cancelled && data) {
+        setMyOrders((data as SupabaseOrderRow[]).map(rowToOrder))
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  const handleSearch = () => {
+    if (!orderId.trim()) return
+    void lookup(orderId.trim())
   }
 
   return (
@@ -80,10 +177,11 @@ function TrackContent() {
             <Button
               onClick={handleSearch}
               size="icon"
+              disabled={searching}
               className="h-12 w-12 shrink-0 rounded-full bg-rose-velvet text-white hover:bg-rose-velvet-hover"
               aria-label="Look up order"
             >
-              <Search className="h-4 w-4" />
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             </Button>
           </div>
           <p className="mt-2 px-2 text-xs text-text-muted">
@@ -91,6 +189,45 @@ function TrackContent() {
             <span className="font-mono text-rose-velvet">FLR-2421</span>
           </p>
         </div>
+
+        {/* Recent orders for the signed-in user */}
+        {user && myOrders.length > 0 && (
+          <div className="mt-8 rounded-3xl border border-border-subtle bg-white p-6">
+            <p className="label-eyebrow mb-4">Your recent orders</p>
+            <ul className="divide-y divide-border-subtle">
+              {myOrders.map((o) => (
+                <li
+                  key={o.id}
+                  className="flex items-center justify-between gap-3 py-3 text-sm"
+                >
+                  <div>
+                    <p className="font-mono text-rose-velvet">{o.id}</p>
+                    <p className="mt-0.5 text-xs text-text-muted">
+                      {o.flowers.length} item{o.flowers.length === 1 ? "" : "s"} ·{" "}
+                      {new Date(o.created_at).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium tabular-nums text-foreground">
+                      {formatLKR(Number(o.total_lkr) + Number(o.delivery_fee_lkr))}
+                    </span>
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-full text-rose-velvet hover:bg-petal-pink"
+                    >
+                      <Link href={`/track?id=${o.id}`}>View</Link>
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {notFound && (
           <div className="mt-6 flex items-center gap-3 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
@@ -109,7 +246,11 @@ function TrackContent() {
                   <p className="font-serif text-2xl text-rose-velvet">{order.id}</p>
                 </div>
                 <p className="text-sm text-text-muted">
-                  Placed {new Date(order.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  Placed{" "}
+                  {new Date(order.created_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
                 </p>
               </div>
               <OrderProgressTracker status={order.status} />
@@ -165,7 +306,7 @@ function TrackContent() {
                 <ul className="divide-y divide-border-subtle">
                   {order.flowers.map((item) => (
                     <li
-                      key={item.flower_id}
+                      key={`${item.flower_id}-${item.flower_name}`}
                       className="flex items-center justify-between py-3 text-sm"
                     >
                       <span className="text-foreground">

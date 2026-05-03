@@ -62,6 +62,7 @@ export function FloralCard({ flower, onAdd }: FloralCardProps) {
           sizes="140px"
           className="object-contain"
           style={{ filter: "drop-shadow(0 8px 24px rgba(153,0,72,0.18))" }}
+          unoptimized={flower.image_url?.startsWith("data:") ?? false}
         />
       </div>
 

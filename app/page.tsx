@@ -7,7 +7,7 @@ import { Navbar } from "@/components/navbar"
 import { FloralCard } from "@/components/floral-card"
 import { CategoryCard } from "@/components/category-card"
 import { Button } from "@/components/ui/button"
-import { flowers } from "@/lib/mock-data"
+import { useFlowers } from "@/lib/data/use-flowers"
 
 const CATEGORIES = [
   { id: "flower", label: "Flowers", icon: "flower" as const, count: 24 },
@@ -17,6 +17,7 @@ const CATEGORIES = [
 ]
 
 export default function HomePage() {
+  const { activeFlowers: flowers } = useFlowers()
   const popular = flowers.slice(0, 4)
 
   return (
@@ -170,7 +171,7 @@ export default function HomePage() {
               Send us a photo. We&apos;ll arrange the rest.
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-sm text-white/80 md:text-base">
-              Upload your inspiration — our AI matches it to in-stock stems and
+              Upload your inspiration ��� our AI matches it to in-stock stems and
               our florists do the binding.
             </p>
             <Button
