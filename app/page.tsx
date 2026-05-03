@@ -21,7 +21,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-parchment">
-      <Navbar cartCount={0} />
+      <Navbar />
 
       {/* HERO */}
       <section className="px-4 pb-24 pt-10 md:px-8 md:pt-16">

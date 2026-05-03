@@ -1,6 +1,13 @@
 "use client"
 
-import { createContext, useContext, useReducer, type ReactNode, type Dispatch } from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  type ReactNode,
+  type Dispatch,
+} from "react"
 import type { OrderItem, DeliveryType } from "@/lib/types"
 
 export type CheckoutStep = 1 | 2 | 3 | 4 | 5
@@ -53,6 +60,7 @@ type Action =
   | { type: "SET_FULFILLMENT"; payload: { type: DeliveryType; address?: string; distanceKm?: number; fee?: number } }
   | { type: "SET_DATE"; payload: { date: string | null; slot?: "morning" | "afternoon" | "evening" | null } }
   | { type: "SET_PAYMENT_STATUS"; payload: OrderState["paymentStatus"] }
+  | { type: "HYDRATE_CART"; payload: OrderItem[] }
   | { type: "RESET_ORDER" }
 
 function reducer(state: OrderState, action: Action): OrderState {
@@ -66,7 +74,7 @@ function reducer(state: OrderState, action: Action): OrderState {
     case "SET_AI_SUGGESTIONS":
       return { ...state, aiSuggestions: action.payload }
     case "ACCEPT_AI_SUGGESTIONS": {
-      // Merge AI suggestions into cart
+      // Merge AI suggestions into cart, incrementing existing quantities
       const merged = [...state.cart]
       for (const item of state.aiSuggestions) {
         const existing = merged.find((c) => c.flower_id === item.flower_id)
@@ -76,6 +84,7 @@ function reducer(state: OrderState, action: Action): OrderState {
       return { ...state, cart: merged }
     }
     case "ADD_TO_CART": {
+      // If flower already in cart, increment quantity. Never duplicate entries.
       const existing = state.cart.find((c) => c.flower_id === action.payload.flower_id)
       if (existing) {
         return {
@@ -92,6 +101,7 @@ function reducer(state: OrderState, action: Action): OrderState {
     case "REMOVE_FROM_CART":
       return { ...state, cart: state.cart.filter((c) => c.flower_id !== action.payload.flower_id) }
     case "UPDATE_QUANTITY": {
+      // Removing all units removes the entry entirely.
       if (action.payload.quantity <= 0) {
         return { ...state, cart: state.cart.filter((c) => c.flower_id !== action.payload.flower_id) }
       }
@@ -118,6 +128,8 @@ function reducer(state: OrderState, action: Action): OrderState {
       }
     case "SET_PAYMENT_STATUS":
       return { ...state, paymentStatus: action.payload }
+    case "HYDRATE_CART":
+      return { ...state, cart: action.payload }
     case "RESET_ORDER":
       return initialState
     default:
@@ -135,8 +147,35 @@ interface OrderContextValue {
 
 const OrderContext = createContext<OrderContextValue | null>(null)
 
+const STORAGE_KEY = "api-flora-cart-v1"
+
 export function OrderProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
+
+  // Hydrate cart from localStorage on mount (browser only).
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw) as OrderItem[]
+        if (Array.isArray(parsed)) dispatch({ type: "HYDRATE_CART", payload: parsed })
+      }
+    } catch {
+      // Ignore corrupted storage
+    }
+  }, [])
+
+  // Persist cart to localStorage on change.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cart))
+    } catch {
+      // Ignore quota errors
+    }
+  }, [state.cart])
+
   const cartSubtotal = state.cart.reduce((sum, item) => sum + item.price_lkr * item.quantity, 0)
   const cartCount = state.cart.reduce((sum, item) => sum + item.quantity, 0)
   const grandTotal = cartSubtotal + state.deliveryFee

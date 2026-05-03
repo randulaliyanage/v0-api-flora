@@ -1,15 +1,20 @@
 "use client"
 
-import { Check } from "lucide-react"
+import { ShoppingBag, Scissors, Truck, CheckCircle2, type LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { OrderStatus } from "@/lib/types"
 
-const STAGES: { key: OrderStatus; label: string }[] = [
-  { key: "placed", label: "Order Placed" },
-  { key: "ai_analyzed", label: "AI Analyzed" },
-  { key: "arranging", label: "Arranging" },
-  { key: "out_for_delivery", label: "Out for Delivery" },
-  { key: "delivered", label: "Delivered" },
+interface Stage {
+  key: OrderStatus
+  label: string
+  icon: LucideIcon
+}
+
+const STAGES: Stage[] = [
+  { key: "placed", label: "Order Placed", icon: ShoppingBag },
+  { key: "arranging", label: "Arranging", icon: Scissors },
+  { key: "out_for_delivery", label: "Out for Delivery", icon: Truck },
+  { key: "delivered", label: "Delivered", icon: CheckCircle2 },
 ]
 
 interface OrderProgressTrackerProps {
@@ -23,32 +28,36 @@ export function OrderProgressTracker({ status }: OrderProgressTrackerProps) {
     <div className="w-full">
       {/* Desktop horizontal */}
       <div className="hidden md:block">
-        <div className="relative flex items-center justify-between">
+        <div className="relative flex items-start justify-between">
           {STAGES.map((stage, idx) => {
             const completed = idx < currentIdx
             const active = idx === currentIdx
+            const Icon = stage.icon
             return (
               <div key={stage.key} className="relative z-10 flex flex-col items-center gap-3">
                 <div
                   className={cn(
-                    "relative flex h-12 w-12 items-center justify-center rounded-full border-2 transition-all",
-                    completed && "border-rose-velvet bg-rose-velvet text-white",
-                    active && "border-rose-velvet bg-white",
-                    !completed && !active && "border-border-subtle bg-white",
+                    "relative flex h-12 w-12 items-center justify-center rounded-full transition-all",
+                    completed && "bg-[#990048] text-white",
+                    active && "border-2 border-[#990048] bg-white",
+                    !completed && !active && "border-2 border-gray-200 bg-white text-gray-400",
                   )}
                 >
-                  {completed && <Check className="h-5 w-5" />}
+                  {completed && <Icon className="h-5 w-5" />}
                   {active && (
                     <>
-                      <span className="absolute inset-0 animate-pulse-ring rounded-full bg-rose-velvet/20" />
-                      <span className="h-3 w-3 rounded-full bg-rose-velvet" />
+                      <span className="absolute inset-0 animate-pulse-ring rounded-full bg-[#990048]/20" />
+                      <span className="h-3 w-3 animate-pulse rounded-full bg-[#990048]" />
                     </>
                   )}
+                  {!completed && !active && <Icon className="h-5 w-5" />}
                 </div>
                 <span
                   className={cn(
-                    "text-xs font-medium",
-                    (completed || active) ? "text-foreground" : "text-text-muted",
+                    "text-xs",
+                    (completed || active)
+                      ? "font-medium text-[#990048]"
+                      : "text-text-muted",
                   )}
                 >
                   {stage.label}
@@ -57,11 +66,14 @@ export function OrderProgressTracker({ status }: OrderProgressTrackerProps) {
             )
           })}
           {/* Connecting line */}
-          <div className="absolute left-6 right-6 top-6 -z-0 h-0.5 bg-border-subtle">
+          <div className="absolute left-6 right-6 top-6 -z-0 h-0.5 -translate-y-1/2 bg-[#e5e7eb]">
             <div
-              className="h-full bg-rose-velvet transition-all"
+              className="h-full bg-[#990048] transition-all"
               style={{
-                width: `${(currentIdx / (STAGES.length - 1)) * 100}%`,
+                width:
+                  currentIdx <= 0
+                    ? "0%"
+                    : `${(currentIdx / (STAGES.length - 1)) * 100}%`,
               }}
             />
           </div>
@@ -73,28 +85,32 @@ export function OrderProgressTracker({ status }: OrderProgressTrackerProps) {
         {STAGES.map((stage, idx) => {
           const completed = idx < currentIdx
           const active = idx === currentIdx
+          const Icon = stage.icon
           return (
             <li key={stage.key} className="flex items-center gap-4">
               <div
                 className={cn(
-                  "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2",
-                  completed && "border-rose-velvet bg-rose-velvet text-white",
-                  active && "border-rose-velvet bg-white",
-                  !completed && !active && "border-border-subtle bg-white",
+                  "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                  completed && "bg-[#990048] text-white",
+                  active && "border-2 border-[#990048] bg-white",
+                  !completed && !active && "border-2 border-gray-200 bg-white text-gray-400",
                 )}
               >
-                {completed && <Check className="h-4 w-4" />}
+                {completed && <Icon className="h-4 w-4" />}
                 {active && (
                   <>
-                    <span className="absolute inset-0 animate-pulse-ring rounded-full bg-rose-velvet/20" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-rose-velvet" />
+                    <span className="absolute inset-0 animate-pulse-ring rounded-full bg-[#990048]/20" />
+                    <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#990048]" />
                   </>
                 )}
+                {!completed && !active && <Icon className="h-4 w-4" />}
               </div>
               <span
                 className={cn(
                   "text-sm",
-                  (completed || active) ? "font-medium text-foreground" : "text-text-muted",
+                  (completed || active)
+                    ? "font-medium text-[#990048]"
+                    : "text-text-muted",
                 )}
               >
                 {stage.label}

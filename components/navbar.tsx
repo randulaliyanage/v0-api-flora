@@ -1,10 +1,20 @@
 "use client"
 
 import Link from "next/link"
-import { ShoppingBag } from "lucide-react"
+import { ShoppingBag, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useOrder } from "@/context/OrderContext"
+import { useAuth } from "@/context/AuthContext"
 
-export function Navbar({ cartCount = 0 }: { cartCount?: number }) {
+/**
+ * Site-wide navbar. Cart count is read from the global OrderContext so it
+ * stays in sync across pages. Authenticated users see their name and a
+ * sign-out button instead of "Sign In".
+ */
+export function Navbar() {
+  const { cartCount } = useOrder()
+  const { user, profile, signOut } = useAuth()
+
   return (
     <header className="sticky top-0 z-40 border-b border-border-subtle bg-parchment/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
@@ -22,16 +32,19 @@ export function Navbar({ cartCount = 0 }: { cartCount?: number }) {
           <Link href="/track" className="text-text-muted transition-colors hover:text-rose-velvet">
             Track Order
           </Link>
-          <Link href="/login" className="text-text-muted transition-colors hover:text-rose-velvet">
-            Sign In
-          </Link>
+          {!user && (
+            <Link href="/login" className="text-text-muted transition-colors hover:text-rose-velvet">
+              Sign In
+            </Link>
+          )}
         </nav>
 
         <div className="flex items-center gap-3">
+          {/* Cart icon with badge */}
           <Link
             href="/create"
             className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle text-rose-velvet transition-colors hover:bg-petal-pink"
-            aria-label="View cart"
+            aria-label={`View cart (${cartCount} items)`}
           >
             <ShoppingBag className="h-4 w-4" />
             {cartCount > 0 && (
@@ -40,12 +53,29 @@ export function Navbar({ cartCount = 0 }: { cartCount?: number }) {
               </span>
             )}
           </Link>
-          <Button
-            asChild
-            className="hidden rounded-full bg-rose-velvet text-white hover:bg-rose-velvet-hover sm:inline-flex"
-          >
-            <Link href="/create">Create Bouquet</Link>
-          </Button>
+
+          {user ? (
+            <div className="flex items-center gap-2">
+              <span className="hidden text-xs text-text-muted md:inline">
+                {profile?.full_name || user.email}
+              </span>
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                aria-label="Sign out"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle text-text-muted transition-colors hover:bg-petal-pink hover:text-rose-velvet"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <Button
+              asChild
+              className="hidden rounded-full bg-rose-velvet text-white hover:bg-rose-velvet-hover sm:inline-flex"
+            >
+              <Link href="/create">Create Bouquet</Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

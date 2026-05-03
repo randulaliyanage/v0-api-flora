@@ -114,39 +114,57 @@ export function StepBouquet() {
           <span className="h-px flex-1 bg-border-subtle" />
         </div>
 
-        <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
+        {/* Parent grid MUST be overflow-visible so the floating images aren't clipped */}
+        <div
+          style={{ overflow: "visible" }}
+          className="grid grid-cols-2 gap-x-5 gap-y-16 pt-12 md:grid-cols-3"
+        >
           {flowers.map((flower) => {
             const qty = cartQty(flower.id)
             return (
               <div
                 key={flower.id}
-                className="arrangement-card relative overflow-visible rounded-3xl border border-border-subtle bg-white px-5 pb-5"
-                style={{ paddingTop: "70px" }}
+                style={{ position: "relative", overflow: "visible", paddingTop: "80px" }}
+                className="rounded-3xl border border-[rgba(153,0,72,0.12)] bg-white p-5 pb-20"
               >
+                {/* Image floats ABOVE the card */}
                 <div
-                  className="absolute left-1/2 z-10 h-28 w-28 -translate-x-1/2 overflow-hidden rounded-full bg-petal-pink"
-                  style={{ top: "-24px" }}
+                  style={{
+                    position: "absolute",
+                    top: "-40px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    zIndex: 10,
+                    width: "120px",
+                    height: "140px",
+                  }}
                 >
                   <Image
                     src={flower.image_url}
                     alt={flower.name}
                     fill
-                    sizes="112px"
-                    className="object-cover"
+                    sizes="120px"
+                    className="object-contain"
+                    style={{ filter: "drop-shadow(0 8px 24px rgba(153,0,72,0.18))" }}
                   />
                 </div>
+
                 {isLowStock(flower) && (
-                  <div className="absolute right-3 top-3 z-20">
-                    <LowStockBadge />
-                  </div>
+                  <span className="absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-1 text-[10px] uppercase tracking-widest text-amber-800">
+                    Low Stock
+                  </span>
                 )}
-                <div className="text-center">
-                  <h3 className="font-serif text-base text-foreground">{flower.name}</h3>
-                  <p className="mt-0.5 text-xs text-text-muted">
-                    {formatLKR(flower.price_lkr)}/stem
-                  </p>
-                </div>
-                <div className="mt-4 flex items-center justify-center gap-2">
+
+                <p className="mt-2 text-center font-serif text-base italic">{flower.name}</p>
+                <p className="mt-1 text-center text-[11px] uppercase tracking-widest text-[#70585b]">
+                  per stem
+                </p>
+                <p className="mt-1 text-center text-base font-bold text-[#990048]">
+                  {formatLKR(flower.price_lkr)}
+                </p>
+
+                {/* Stepper anchored at bottom */}
+                <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2">
                   <button
                     onClick={() =>
                       dispatch({
@@ -155,7 +173,7 @@ export function StepBouquet() {
                       })
                     }
                     disabled={qty === 0}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-border-subtle text-text-muted transition-colors hover:bg-petal-pink hover:text-rose-velvet disabled:opacity-40"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-[rgba(153,0,72,0.12)] text-[#70585b] transition-colors hover:bg-petal-pink hover:text-[#990048] disabled:opacity-40"
                     aria-label="Decrease"
                   >
                     <Minus className="h-3.5 w-3.5" />
@@ -174,7 +192,7 @@ export function StepBouquet() {
                         },
                       })
                     }
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-velvet text-white transition-colors hover:bg-rose-velvet-hover"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[#990048] text-white transition-colors hover:bg-[#7a0039]"
                     aria-label="Increase"
                   >
                     <Plus className="h-3.5 w-3.5" />

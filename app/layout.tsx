@@ -1,15 +1,18 @@
 import type { Metadata } from 'next'
 import { Noto_Serif, Plus_Jakarta_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { AuthProvider } from '@/context/AuthContext'
+import { OrderProvider } from '@/context/OrderContext'
+import { Toaster } from 'sonner'
 import './globals.css'
 
-const notoSerif = Noto_Serif({ 
+const notoSerif = Noto_Serif({
   subsets: ["latin"],
   variable: '--font-noto-serif',
   display: 'swap',
 })
 
-const plusJakartaSans = Plus_Jakarta_Sans({ 
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: '--font-plus-jakarta-sans',
   display: 'swap',
@@ -45,8 +48,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${notoSerif.variable} ${plusJakartaSans.variable} bg-parchment`}>
-      <body className="font-sans antialiased">
-        {children}
+      <body className="bg-[#fcf9f5] min-h-screen font-sans antialiased">
+        <AuthProvider>
+          <OrderProvider>
+            {children}
+            <Toaster richColors position="top-right" />
+          </OrderProvider>
+        </AuthProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

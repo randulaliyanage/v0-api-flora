@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils"
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   placed: "Placed",
-  ai_analyzed: "Analyzing",
   arranging: "Arranging",
   out_for_delivery: "Out for Delivery",
   delivered: "Delivered",
@@ -25,13 +24,12 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
   placed: "bg-amber-100 text-amber-800",
-  ai_analyzed: "bg-sky-100 text-sky-800",
   arranging: "bg-purple-100 text-purple-800",
   out_for_delivery: "bg-blue-100 text-blue-800",
   delivered: "bg-emerald-100 text-emerald-800",
 }
 
-const STATUS_OPTIONS: OrderStatus[] = ["placed", "ai_analyzed", "arranging", "out_for_delivery", "delivered"]
+const STATUS_OPTIONS: OrderStatus[] = ["placed", "arranging", "out_for_delivery", "delivered"]
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>(initialOrders)

@@ -29,7 +29,6 @@ export interface OrderItem {
 
 export type OrderStatus =
   | "placed"
-  | "ai_analyzed"
   | "arranging"
   | "out_for_delivery"
   | "delivered"

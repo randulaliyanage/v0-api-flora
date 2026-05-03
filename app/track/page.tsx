@@ -54,7 +54,7 @@ function TrackContent() {
 
   return (
     <div className="min-h-screen bg-parchment">
-      <Navbar cartCount={0} />
+      <Navbar />
 
       <main className="mx-auto max-w-3xl px-4 py-12 md:py-20">
         <div className="mb-10 text-center">

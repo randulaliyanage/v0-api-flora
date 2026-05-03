@@ -7,7 +7,6 @@ import type { OrderStatus } from "@/lib/types"
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   placed: "Queued",
-  ai_analyzed: "Analyzing",
   arranging: "Arranging",
   out_for_delivery: "On the road",
   delivered: "Delivered",

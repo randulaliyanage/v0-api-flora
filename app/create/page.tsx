@@ -21,7 +21,7 @@ const STEPS = [
 ]
 
 export default function CreatePage() {
-  const { state, dispatch, cartCount } = useOrder()
+  const { state, dispatch } = useOrder()
 
   const next = () => {
     const n = Math.min(5, state.step + 1) as CheckoutStep
@@ -55,7 +55,7 @@ export default function CreatePage() {
 
   return (
     <div className="min-h-screen bg-parchment pb-32 md:pb-0">
-      <Navbar cartCount={cartCount} />
+      <Navbar />
 
       <main className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-16">
         <div className="mb-10">

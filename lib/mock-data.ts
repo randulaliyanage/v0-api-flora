@@ -168,7 +168,7 @@ export const orders: Order[] = [
     customer_id: "u5",
     customer_name: "Dilini Edirisinghe",
     customer_phone: "+94 77 884 1267",
-    status: "ai_analyzed",
+    status: "arranging",
     flowers: [
       { flower_id: "pink-peony", flower_name: "Pink Peony", quantity: 15, price_lkr: 280 },
       { flower_id: "white-lily", flower_name: "White Lily", quantity: 8, price_lkr: 95 },

@@ -12,7 +12,7 @@ export default async function OrderSuccessPage({ params }: SuccessPageProps) {
 
   return (
     <div className="min-h-screen bg-parchment">
-      <Navbar cartCount={0} />
+      <Navbar />
 
       <main className="mx-auto max-w-2xl px-4 py-16 md:py-24">
         <div className="rounded-3xl border border-border-subtle bg-white p-10 text-center md:p-14">
