@@ -1,86 +1,52 @@
 "use client"
 
-import Image from "next/image"
-import { Plus } from "lucide-react"
-import type { Flower } from "@/lib/types"
-import { formatLKR, isLowStock } from "@/lib/mock-data"
-import { useOrder } from "@/context/OrderContext"
-
 interface FloralCardProps {
-  flower: Flower
-  /** Optional override; defaults to dispatching ADD_TO_CART on the global OrderContext. */
-  onAdd?: (flower: Flower) => void
+  flower: {
+    id: string
+    name: string
+    image_url: string
+    price_lkr: number
+    stock_count: number
+  }
+  onAdd: (flower: FloralCardProps["flower"]) => void
 }
 
-/**
- * Arrangement Header card — outer wrapper reserves room (paddingTop:90px,
- * marginTop:48px) so the floating image can sit absolutely above the inner
- * card without colliding with text or neighboring rows. The inner card uses
- * paddingTop:60px to clear the image's lower half.
- *
- * IMPORTANT: every parent grid that renders FloralCard MUST have
- * `overflow: visible` and a generous row gap (>= 80px).
- */
 export function FloralCard({ flower, onAdd }: FloralCardProps) {
-  const { dispatch } = useOrder()
-  const lowStock = isLowStock(flower)
-
-  const handleAdd = () => {
-    if (onAdd) {
-      onAdd(flower)
-      return
-    }
-    dispatch({
-      type: "ADD_TO_CART",
-      payload: {
-        flower_id: flower.id,
-        flower_name: flower.name,
-        flower_image: flower.image_url,
-        quantity: 1,
-        price_lkr: flower.price_lkr,
-      },
-    })
-  }
-
   return (
-    <div style={{ paddingTop: "90px", marginTop: "48px" }}>
+    <div style={{ marginTop: "60px", position: "relative" }}>
+      {/* Image — lives OUTSIDE and ABOVE the white card */}
       <div
         style={{
-          position: "relative",
-          overflow: "visible",
-          background: "white",
+          position: "absolute",
+          top: "-60px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "120px",
+          height: "120px",
+          zIndex: 20,
+          pointerEvents: "none",
+        }}
+      >
+        <img
+          src={flower.image_url || "/placeholder.svg"}
+          alt={flower.name}
+          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+        />
+      </div>
+
+      {/* White card — image is NOT inside this */}
+      <div
+        style={{
+          background: "#ffffff",
           borderRadius: "1.5rem",
           border: "1px solid rgba(153,0,72,0.12)",
-          padding: "1.5rem",
-          paddingTop: "60px",
+          padding: "70px 24px 24px 24px",
           textAlign: "center",
+          position: "relative",
+          overflow: "visible",
         }}
-        className="transition-all hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(153,0,72,0.2)]"
       >
-        {/* Image floats above card — absolutely positioned relative to this inner div */}
-        <div
-          style={{
-            position: "absolute",
-            top: "-60px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "120px",
-            height: "120px",
-            zIndex: 10,
-          }}
-        >
-          <Image
-            src={flower.image_url || "/placeholder.svg"}
-            alt={flower.name}
-            fill
-            sizes="120px"
-            style={{ objectFit: "contain" }}
-            unoptimized={flower.image_url?.startsWith("data:") ?? false}
-          />
-        </div>
-
-        {/* Low stock badge — inside card top-right, does not touch image */}
-        {lowStock && (
+        {flower.stock_count < 20 && (
           <span
             style={{
               position: "absolute",
@@ -99,14 +65,13 @@ export function FloralCard({ flower, onAdd }: FloralCardProps) {
           </span>
         )}
 
-        {/* Text — fully in normal flow, no collisions */}
         <p
           style={{
-            fontFamily: "var(--font-serif)",
+            fontFamily: "'Noto Serif', serif",
             fontStyle: "italic",
             fontSize: "1rem",
             color: "#1a0a0e",
-            margin: "0 0 4px",
+            margin: "0 0 6px 0",
           }}
         >
           {flower.name}
@@ -117,7 +82,7 @@ export function FloralCard({ flower, onAdd }: FloralCardProps) {
             textTransform: "uppercase",
             letterSpacing: "0.1em",
             color: "#70585b",
-            margin: "0 0 4px",
+            margin: "0 0 6px 0",
           }}
         >
           per stem
@@ -127,16 +92,14 @@ export function FloralCard({ flower, onAdd }: FloralCardProps) {
             fontSize: "1.25rem",
             fontWeight: 700,
             color: "#990048",
-            margin: "0 0 12px",
+            margin: "0 0 16px 0",
           }}
         >
-          {formatLKR(flower.price_lkr)}
+          LKR {flower.price_lkr.toLocaleString("en-LK")}
         </p>
 
-        {/* Add button */}
         <button
-          type="button"
-          onClick={handleAdd}
+          onClick={() => onAdd(flower)}
           aria-label={`Add ${flower.name} to bouquet`}
           style={{
             position: "absolute",
@@ -148,14 +111,15 @@ export function FloralCard({ flower, onAdd }: FloralCardProps) {
             background: "#990048",
             color: "white",
             border: "none",
+            fontSize: "20px",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            lineHeight: 1,
           }}
-          className="transition-colors hover:!bg-[#7a0039]"
         >
-          <Plus className="h-5 w-5" />
+          +
         </button>
       </div>
     </div>

@@ -8,6 +8,9 @@ import { FloralCard } from "@/components/floral-card"
 import { CategoryCard } from "@/components/category-card"
 import { Button } from "@/components/ui/button"
 import { useFlowers } from "@/lib/data/use-flowers"
+import { useOrder } from "@/context/OrderContext"
+import type { Flower } from "@/lib/types"
+import { toast } from "sonner"
 
 const CATEGORIES = [
   { id: "flower", label: "Flowers", icon: "flower" as const, count: 24 },
@@ -18,7 +21,22 @@ const CATEGORIES = [
 
 export default function HomePage() {
   const { activeFlowers: flowers } = useFlowers()
+  const { dispatch } = useOrder()
   const popular = flowers.slice(0, 4)
+
+  const handleAdd = (flower: Pick<Flower, "id" | "name" | "image_url" | "price_lkr">) => {
+    dispatch({
+      type: "ADD_TO_CART",
+      payload: {
+        flower_id: flower.id,
+        flower_name: flower.name,
+        flower_image: flower.image_url,
+        quantity: 1,
+        price_lkr: flower.price_lkr,
+      },
+    })
+    toast.success(`${flower.name} added to your bouquet`)
+  }
 
   return (
     <div className="min-h-screen bg-parchment">
@@ -126,8 +144,12 @@ export default function HomePage() {
       </section>
 
       {/* POPULAR ITEMS — surface-container background */}
-      <section id="shop" className="bg-surface-container px-4 py-20 md:px-8">
-        <div className="mx-auto max-w-7xl">
+      <section
+        id="shop"
+        className="bg-surface-container px-4 md:px-8"
+        style={{ paddingTop: "60px", paddingBottom: "80px", overflow: "visible" }}
+      >
+        <div className="mx-auto max-w-7xl" style={{ overflow: "visible" }}>
           <div className="mb-12 flex flex-col items-center text-center">
             <p className="label-eyebrow mb-3">This Season</p>
             <h2 className="font-serif text-3xl text-foreground md:text-4xl">Popular Stems</h2>
@@ -136,19 +158,27 @@ export default function HomePage() {
             </p>
           </div>
           <div
-            style={{ overflow: "visible", rowGap: "80px" }}
-            className="grid grid-cols-2 gap-x-6 md:grid-cols-4 md:gap-x-8"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+              gap: "24px",
+              rowGap: "80px",
+              overflow: "visible",
+            }}
           >
             {popular.map((flower) => (
-              <FloralCard key={flower.id} flower={flower} />
+              <FloralCard key={flower.id} flower={flower} onAdd={handleAdd} />
             ))}
           </div>
         </div>
       </section>
 
       {/* FULL CATALOG */}
-      <section className="px-4 py-20 md:px-8">
-        <div className="mx-auto max-w-7xl">
+      <section
+        className="px-4 md:px-8"
+        style={{ paddingTop: "60px", paddingBottom: "80px", overflow: "visible" }}
+      >
+        <div className="mx-auto max-w-7xl" style={{ overflow: "visible" }}>
           <div className="mb-10">
             <p className="label-eyebrow mb-3">The Full Garden</p>
             <h2 className="font-serif text-3xl text-foreground md:text-4xl">
@@ -156,11 +186,16 @@ export default function HomePage() {
             </h2>
           </div>
           <div
-            style={{ overflow: "visible", rowGap: "80px" }}
-            className="grid grid-cols-2 gap-x-6 md:grid-cols-3 md:gap-x-8 lg:grid-cols-4"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+              gap: "24px",
+              rowGap: "80px",
+              overflow: "visible",
+            }}
           >
             {flowers.map((flower) => (
-              <FloralCard key={flower.id} flower={flower} />
+              <FloralCard key={flower.id} flower={flower} onAdd={handleAdd} />
             ))}
           </div>
         </div>
@@ -177,7 +212,7 @@ export default function HomePage() {
               Send us a photo. We&apos;ll arrange the rest.
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-sm text-white/80 md:text-base">
-              Upload your inspiration ��� our AI matches it to in-stock stems and
+              Upload your inspiration — our AI matches it to in-stock stems and
               our florists do the binding.
             </p>
             <Button
