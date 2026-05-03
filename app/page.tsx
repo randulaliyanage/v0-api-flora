@@ -135,7 +135,10 @@ export default function HomePage() {
               Hand-selected blooms our florists are reaching for this week.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-6 pt-12 md:grid-cols-4 md:gap-8">
+          <div
+            style={{ overflow: "visible" }}
+            className="grid grid-cols-2 gap-x-6 gap-y-16 pt-12 md:grid-cols-4 md:gap-x-8"
+          >
             {popular.map((flower) => (
               <FloralCard key={flower.id} flower={flower} />
             ))}
@@ -152,7 +155,10 @@ export default function HomePage() {
               Every bloom, by the stem
             </h2>
           </div>
-          <div className="grid grid-cols-2 gap-6 pt-12 md:grid-cols-3 md:gap-8 lg:grid-cols-4">
+          <div
+            style={{ overflow: "visible" }}
+            className="grid grid-cols-2 gap-x-6 gap-y-16 pt-12 md:grid-cols-3 md:gap-x-8 lg:grid-cols-4"
+          >
             {flowers.map((flower) => (
               <FloralCard key={flower.id} flower={flower} />
             ))}

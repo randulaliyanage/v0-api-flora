@@ -40,54 +40,69 @@ export function FloralCard({ flower, onAdd }: FloralCardProps) {
 
   return (
     <div
-      style={{ position: "relative", overflow: "visible", paddingTop: "80px" }}
-      className="rounded-3xl border border-[rgba(153,0,72,0.12)] bg-white p-6 pb-16 transition-all hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(153,0,72,0.2)]"
+      style={{ position: "relative", overflow: "visible", paddingTop: "120px" }}
+      className="rounded-3xl border border-[rgba(153,0,72,0.12)] bg-white px-6 pb-16 transition-all hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(153,0,72,0.2)]"
     >
-      {/* Image floats ABOVE the card */}
+      {/* Image floats ABOVE the card — overflow-visible parent required */}
       <div
         style={{
           position: "absolute",
-          top: "-40px",
+          top: "-48px",
           left: "50%",
           transform: "translateX(-50%)",
+          width: "120px",
+          height: "120px",
           zIndex: 10,
-          width: "140px",
-          height: "160px",
         }}
       >
         <Image
           src={flower.image_url || "/placeholder.svg"}
           alt={flower.name}
           fill
-          sizes="140px"
+          sizes="120px"
           className="object-contain"
           style={{ filter: "drop-shadow(0 8px 24px rgba(153,0,72,0.18))" }}
           unoptimized={flower.image_url?.startsWith("data:") ?? false}
         />
       </div>
 
-      {/* Card content below */}
-      <p className="mt-2 text-center font-serif text-lg italic">{flower.name}</p>
-      <p className="mt-1 text-center text-sm uppercase tracking-widest text-[#70585b]">
-        per stem
+      {/* Card text content — normal flow, sits below the 120px paddingTop gap */}
+      <p
+        className="text-center font-serif text-base italic"
+        style={{ color: "#1a0a0e" }}
+      >
+        {flower.name}
       </p>
-      <p className="mt-1 text-center text-xl font-bold text-[#990048]">
+      <p
+        className="mt-1 text-center text-xs uppercase tracking-widest"
+        style={{ color: "#70585b" }}
+      >
+        Per Stem
+      </p>
+      <p
+        className="mt-1 text-center text-xl font-bold"
+        style={{ color: "#990048" }}
+      >
         {formatLKR(flower.price_lkr)}
       </p>
 
-      {/* Stock badge */}
+      {/* Low stock badge — inside card, top-right corner */}
       {lowStock && (
-        <span className="absolute right-4 top-4 rounded-full bg-amber-100 px-2 py-1 text-[10px] uppercase tracking-widest text-amber-800">
+        <span
+          className="absolute rounded-full bg-amber-100 px-2 py-1 text-[10px] uppercase tracking-widest text-amber-800"
+          style={{ top: "12px", right: "12px" }}
+        >
           Low Stock
         </span>
       )}
 
-      {/* Add button */}
+      {/* Add button — bottom-right corner */}
       <button
         type="button"
         onClick={handleAdd}
         aria-label={`Add ${flower.name} to bouquet`}
-        className="absolute bottom-5 right-5 flex h-8 w-8 items-center justify-center rounded-full bg-[#990048] text-white transition-colors hover:bg-[#7a0039]"
+        className="absolute flex h-8 w-8 items-center justify-center rounded-full bg-[#990048] text-white transition-colors hover:bg-[#7a0039]"
+        style={{ bottom: "16px", right: "16px" }}
       >
         <Plus className="h-4 w-4" />
       </button>
