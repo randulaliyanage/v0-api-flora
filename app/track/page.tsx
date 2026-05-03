@@ -1,189 +1,343 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import { Navbar } from '@/components/navbar'
-import { OrderProgressBar } from '@/components/order-progress-bar'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { InputGroup, InputGroupInput, InputGroupAddon } from '@/components/ui/input-group'
-import { sampleOrders, products } from '@/lib/data'
-import { Search, MapPin, Clock } from 'lucide-react'
+import { useState, useEffect, Suspense, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { Search, MapPin, Clock, AlertCircle, Loader2 } from "lucide-react"
+import { Navbar } from "@/components/navbar"
+import { OrderProgressTracker } from "@/components/order-progress-tracker"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { getOrderById, formatLKR } from "@/lib/mock-data"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
+import { useAuth } from "@/context/AuthContext"
+import type { Order, OrderItem, OrderStatus } from "@/lib/types"
 
-export default function TrackPage() {
-  const [orderId, setOrderId] = useState('')
-  const [searchedOrder, setSearchedOrder] = useState<typeof sampleOrders[0] | null>(null)
+interface SupabaseOrderRow {
+  id: string
+  customer_name: string
+  customer_phone: string
+  status: OrderStatus
+  total_lkr: number
+  delivery_fee_lkr: number
+  delivery_type: "pickup" | "delivery"
+  delivery_address: string | null
+  delivery_distance_km: number | null
+  scheduled_date: string
+  scheduled_slot: "morning" | "afternoon" | "evening" | null
+  reference_image_url: string | null
+  created_at: string
+  order_items?: Array<{
+    flower_id: string | null
+    flower_name: string
+    flower_image: string | null
+    quantity: number
+    price_lkr: number
+  }>
+}
+
+function rowToOrder(row: SupabaseOrderRow): Order {
+  return {
+    id: row.id,
+    customer_id: "",
+    customer_name: row.customer_name,
+    customer_phone: row.customer_phone,
+    status: row.status,
+    flowers: (row.order_items ?? []).map(
+      (item): OrderItem => ({
+        flower_id: item.flower_id ?? "",
+        flower_name: item.flower_name,
+        flower_image: item.flower_image ?? undefined,
+        quantity: item.quantity,
+        price_lkr: Number(item.price_lkr),
+      }),
+    ),
+    total_lkr: Number(row.total_lkr) - Number(row.delivery_fee_lkr),
+    delivery_type: row.delivery_type,
+    delivery_address: row.delivery_address ?? undefined,
+    delivery_distance_km: row.delivery_distance_km ?? undefined,
+    delivery_fee_lkr: Number(row.delivery_fee_lkr),
+    scheduled_date: row.scheduled_date,
+    scheduled_slot: row.scheduled_slot ?? undefined,
+    reference_image_url: row.reference_image_url ?? undefined,
+    created_at: row.created_at,
+  }
+}
+
+function TrackContent() {
+  const params = useSearchParams()
+  const initial = params.get("id") ?? ""
+  const { user } = useAuth()
+  const [orderId, setOrderId] = useState(initial)
+  const [order, setOrder] = useState<Order | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [myOrders, setMyOrders] = useState<Order[]>([])
 
-  const handleSearch = () => {
-    const order = sampleOrders.find(
-      (o) => o.id.toLowerCase() === orderId.toLowerCase()
-    )
-    if (order) {
-      setSearchedOrder(order)
+  const lookup = useCallback(async (id: string) => {
+    setSearching(true)
+    setNotFound(false)
+    let found: Order | null = null
+
+    // 1. Try Supabase
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from("orders")
+          .select(
+            "id, customer_name, customer_phone, status, total_lkr, delivery_fee_lkr, delivery_type, delivery_address, delivery_distance_km, scheduled_date, scheduled_slot, reference_image_url, created_at, order_items(flower_id, flower_name, flower_image, quantity, price_lkr)",
+          )
+          .eq("id", id)
+          .maybeSingle()
+        if (data) found = rowToOrder(data as SupabaseOrderRow)
+      } catch {
+        // ignore — fall through to mock
+      }
+    }
+
+    // 2. Fall back to mock demo orders
+    if (!found) {
+      const mock = getOrderById(id)
+      if (mock) found = mock
+    }
+
+    if (found) {
+      setOrder(found)
       setNotFound(false)
     } else {
-      setSearchedOrder(null)
+      setOrder(null)
       setNotFound(true)
     }
-  }
+    setSearching(false)
+  }, [])
 
-  const getOrderItems = (order: typeof sampleOrders[0]) => {
-    return order.items.map((item) => {
-      const product = products.find((p) => p.id === item.productId)
-      return {
-        name: product?.name || 'Unknown',
-        quantity: item.quantity,
-        price: product?.price || 0,
+  useEffect(() => {
+    if (initial) {
+      void lookup(initial)
+    }
+  }, [initial, lookup])
+
+  // Load this user's recent orders
+  useEffect(() => {
+    if (!user || !isSupabaseConfigured()) {
+      setMyOrders([])
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from("orders")
+        .select(
+          "id, customer_name, customer_phone, status, total_lkr, delivery_fee_lkr, delivery_type, delivery_address, delivery_distance_km, scheduled_date, scheduled_slot, reference_image_url, created_at, order_items(flower_id, flower_name, flower_image, quantity, price_lkr)",
+        )
+        .eq("customer_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5)
+      if (!cancelled && data) {
+        setMyOrders((data as SupabaseOrderRow[]).map(rowToOrder))
       }
-    })
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  const handleSearch = () => {
+    if (!orderId.trim()) return
+    void lookup(orderId.trim())
   }
 
   return (
     <div className="min-h-screen bg-parchment">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="font-serif text-4xl text-foreground mb-4">Track Your Order</h1>
-            <p className="text-muted-foreground">
-              Enter your order ID to see the current status of your bouquet
-            </p>
-          </div>
-
-          {/* Search Box */}
-          <Card className="bg-card border border-border-subtle mb-8">
-            <CardContent className="pt-6">
-              <div className="flex gap-4">
-                <InputGroup className="flex-1">
-                  <InputGroupInput
-                    placeholder="Enter Order ID (e.g., ORD-2024-001)"
-                    value={orderId}
-                    onChange={(e) => setOrderId(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="bg-parchment border-border-subtle"
-                  />
-                  <InputGroupAddon position="left">
-                    <Search className="w-4 h-4 text-muted-foreground" />
-                  </InputGroupAddon>
-                </InputGroup>
-                <Button
-                  onClick={handleSearch}
-                  className="bg-rose-velvet hover:bg-rose-velvet/90 text-primary-foreground"
-                >
-                  Track
-                </Button>
-              </div>
-              
-              {/* Sample order hint */}
-              <p className="text-xs text-muted-foreground mt-3">
-                Try: ORD-2024-001, ORD-2024-002, ORD-2024-003
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Not Found */}
-          {notFound && (
-            <Card className="bg-card border border-border-subtle mb-8">
-              <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">
-                  No order found with ID &quot;{orderId}&quot;
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Please check your order ID and try again
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Order Found */}
-          {searchedOrder && (
-            <div className="flex flex-col gap-8">
-              {/* Progress Bar */}
-              <Card className="bg-card border border-border-subtle">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="font-serif text-xl">Order Status</CardTitle>
-                    <span className="text-sm text-muted-foreground">{searchedOrder.id}</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <OrderProgressBar status={searchedOrder.status} />
-                </CardContent>
-              </Card>
-
-              {/* Order Details */}
-              <Card className="bg-card border border-border-subtle">
-                <CardHeader>
-                  <CardTitle className="font-serif text-xl">Order Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col gap-6">
-                    {/* Items */}
-                    <div>
-                      <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3 font-sans">
-                        Items
-                      </p>
-                      <ul className="space-y-2">
-                        {getOrderItems(searchedOrder).map((item) => (
-                          <li key={item.name} className="flex justify-between text-sm">
-                            <span className="text-foreground">
-                              {item.name} x {item.quantity}
-                            </span>
-                            <span className="text-muted-foreground">
-                              LKR {(item.price * item.quantity).toLocaleString()}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Delivery Info */}
-                    <div className="border-t border-border-subtle pt-6">
-                      <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3 font-sans">
-                        Delivery Information
-                      </p>
-                      <div className="flex flex-col gap-3">
-                        <div className="flex items-start gap-3">
-                          <MapPin className="w-5 h-5 text-rose-velvet flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm text-foreground">{searchedOrder.deliveryAddress}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Delivery fee: LKR {searchedOrder.deliveryFee}
-                            </p>
-                          </div>
-                        </div>
-                        {searchedOrder.estimatedTime && (
-                          <div className="flex items-start gap-3">
-                            <Clock className="w-5 h-5 text-rose-velvet flex-shrink-0 mt-0.5" />
-                            <div>
-                              <p className="text-sm text-foreground">Estimated Delivery</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {searchedOrder.estimatedTime}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Customer Info */}
-                    <div className="border-t border-border-subtle pt-6">
-                      <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3 font-sans">
-                        Customer
-                      </p>
-                      <p className="text-sm text-foreground">{searchedOrder.customer}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{searchedOrder.phone}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+      <main className="mx-auto max-w-3xl px-4 py-12 md:py-20">
+        <div className="mb-10 text-center">
+          <p className="label-eyebrow mb-3">Track Order</p>
+          <h1 className="font-serif text-3xl italic text-foreground md:text-5xl">
+            Where are my blooms?
+          </h1>
+          <p className="mt-3 text-sm text-text-muted">
+            Enter your order reference to see live progress.
+          </p>
         </div>
-      </div>
+
+        {/* Search */}
+        <div className="rounded-3xl border border-border-subtle bg-white p-3">
+          <div className="flex items-center gap-2">
+            <Input
+              value={orderId}
+              onChange={(e) => setOrderId(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="e.g. FLR-2418"
+              className="h-12 flex-1 rounded-2xl border-0 bg-transparent px-5 text-base shadow-none focus-visible:ring-0"
+            />
+            <Button
+              onClick={handleSearch}
+              size="icon"
+              disabled={searching}
+              className="h-12 w-12 shrink-0 rounded-full bg-rose-velvet text-white hover:bg-rose-velvet-hover"
+              aria-label="Look up order"
+            >
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            </Button>
+          </div>
+          <p className="mt-2 px-2 text-xs text-text-muted">
+            Demo: try <span className="font-mono text-rose-velvet">FLR-2418</span> or{" "}
+            <span className="font-mono text-rose-velvet">FLR-2421</span>
+          </p>
+        </div>
+
+        {/* Recent orders for the signed-in user */}
+        {user && myOrders.length > 0 && (
+          <div className="mt-8 rounded-3xl border border-border-subtle bg-white p-6">
+            <p className="label-eyebrow mb-4">Your recent orders</p>
+            <ul className="divide-y divide-border-subtle">
+              {myOrders.map((o) => (
+                <li
+                  key={o.id}
+                  className="flex items-center justify-between gap-3 py-3 text-sm"
+                >
+                  <div>
+                    <p className="font-mono text-rose-velvet">{o.id}</p>
+                    <p className="mt-0.5 text-xs text-text-muted">
+                      {o.flowers.length} item{o.flowers.length === 1 ? "" : "s"} ·{" "}
+                      {new Date(o.created_at).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium tabular-nums text-foreground">
+                      {formatLKR(Number(o.total_lkr) + Number(o.delivery_fee_lkr))}
+                    </span>
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-full text-rose-velvet hover:bg-petal-pink"
+                    >
+                      <Link href={`/track?id=${o.id}`}>View</Link>
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {notFound && (
+          <div className="mt-6 flex items-center gap-3 rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
+            <AlertCircle className="h-4 w-4" />
+            We couldn&apos;t find that order. Double-check the reference and try again.
+          </div>
+        )}
+
+        {order && (
+          <div className="mt-10 space-y-8">
+            {/* Progress */}
+            <div className="rounded-3xl border border-border-subtle bg-white p-6 md:p-10">
+              <div className="mb-8 flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between">
+                <div>
+                  <p className="label-eyebrow mb-1">Reference</p>
+                  <p className="font-serif text-2xl text-rose-velvet">{order.id}</p>
+                </div>
+                <p className="text-sm text-text-muted">
+                  Placed{" "}
+                  {new Date(order.created_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
+              </div>
+              <OrderProgressTracker status={order.status} />
+            </div>
+
+            {/* Details */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="rounded-3xl border border-border-subtle bg-white p-6">
+                <p className="label-eyebrow mb-3">Delivery</p>
+                <div className="flex items-start gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-petal-pink text-rose-velvet">
+                    <MapPin className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {order.delivery_type === "pickup" ? "Studio Pickup" : "Home Delivery"}
+                    </p>
+                    <p className="mt-1 text-xs text-text-muted">
+                      {order.delivery_type === "pickup"
+                        ? "27 Temple Road, Maharagama"
+                        : order.delivery_address ?? "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-border-subtle bg-white p-6">
+                <p className="label-eyebrow mb-3">Schedule</p>
+                <div className="flex items-start gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-petal-pink text-rose-velvet">
+                    <Clock className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {new Date(order.scheduled_date).toLocaleDateString("en-US", {
+                        weekday: "long",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                    <p className="mt-1 text-xs capitalize text-text-muted">
+                      {order.scheduled_slot ?? "—"} window
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Items */}
+            {order.flowers.length > 0 && (
+              <div className="rounded-3xl border border-border-subtle bg-white p-6">
+                <p className="label-eyebrow mb-4">Your bouquet</p>
+                <ul className="divide-y divide-border-subtle">
+                  {order.flowers.map((item) => (
+                    <li
+                      key={`${item.flower_id}-${item.flower_name}`}
+                      className="flex items-center justify-between py-3 text-sm"
+                    >
+                      <span className="text-foreground">
+                        <span className="font-medium">{item.flower_name}</span>
+                        <span className="ml-2 text-text-muted">×{item.quantity}</span>
+                      </span>
+                      <span className="font-medium text-text-muted tabular-nums">
+                        {formatLKR(item.price_lkr * item.quantity)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-4 flex items-baseline justify-between border-t border-border-subtle pt-4">
+                  <span className="label-eyebrow">Total paid</span>
+                  <span className="font-serif text-xl text-rose-velvet">
+                    {formatLKR(order.total_lkr + order.delivery_fee_lkr)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
     </div>
+  )
+}
+
+export default function TrackPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-parchment" />}>
+      <TrackContent />
+    </Suspense>
   )
 }

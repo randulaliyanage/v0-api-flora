@@ -4,80 +4,50 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* API Flora Design System */
+  /* API Flora Design System - Strict spec values */
   --rose-velvet: #990048;
-  --petal-pink: #70585b;
+  --rose-velvet-hover: #7a0039;
+  --petal-pink: #f8d8db;
+  --surface-container: #f0ede9;
   --parchment: #fcf9f5;
-  --border-subtle: rgba(153, 0, 72, 0.10);
+  --text-primary: #1a0a0e;
+  --text-muted: #70585b;
+  --border-subtle: rgba(153, 0, 72, 0.12);
 
+  /* shadcn token mapping */
   --background: #fcf9f5;
-  --foreground: #1a1a1a;
+  --foreground: #1a0a0e;
   --card: #ffffff;
-  --card-foreground: #1a1a1a;
+  --card-foreground: #1a0a0e;
   --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
+  --popover-foreground: #1a0a0e;
   --primary: #990048;
   --primary-foreground: #ffffff;
-  --secondary: #fcf9f5;
-  --secondary-foreground: #70585b;
-  --muted: #f5f0eb;
+  --secondary: #f0ede9;
+  --secondary-foreground: #1a0a0e;
+  --muted: #f0ede9;
   --muted-foreground: #70585b;
-  --accent: #990048;
-  --accent-foreground: #ffffff;
+  --accent: #f8d8db;
+  --accent-foreground: #990048;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: rgba(153, 0, 72, 0.10);
-  --input: rgba(153, 0, 72, 0.10);
-  --ring: #990048;
-  --chart-1: #990048;
-  --chart-2: #70585b;
-  --chart-3: #b8506a;
-  --chart-4: #d4a5b0;
-  --chart-5: #f0d5dc;
-  --radius: 0.75rem;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1a1a1a;
-  --sidebar-primary: #990048;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #fcf9f5;
-  --sidebar-accent-foreground: #70585b;
-  --sidebar-border: rgba(153, 0, 72, 0.10);
-  --sidebar-ring: #990048;
-}
-
-.dark {
-  --background: #1a1a1a;
-  --foreground: #fcf9f5;
-  --card: #262626;
-  --card-foreground: #fcf9f5;
-  --popover: #262626;
-  --popover-foreground: #fcf9f5;
-  --primary: #990048;
-  --primary-foreground: #ffffff;
-  --secondary: #262626;
-  --secondary-foreground: #d4a5b0;
-  --muted: #262626;
-  --muted-foreground: #a0a0a0;
-  --accent: #990048;
-  --accent-foreground: #ffffff;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: rgba(153, 0, 72, 0.20);
-  --input: rgba(153, 0, 72, 0.20);
+  --border: rgba(153, 0, 72, 0.12);
+  --input: rgba(153, 0, 72, 0.12);
   --ring: #990048;
   --chart-1: #990048;
   --chart-2: #b8506a;
   --chart-3: #d4a5b0;
-  --chart-4: #70585b;
-  --chart-5: #f0d5dc;
-  --sidebar: #1a1a1a;
-  --sidebar-foreground: #fcf9f5;
-  --sidebar-primary: #990048;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #262626;
-  --sidebar-accent-foreground: #fcf9f5;
-  --sidebar-border: rgba(153, 0, 72, 0.20);
-  --sidebar-ring: #990048;
+  --chart-4: #f8d8db;
+  --chart-5: #70585b;
+  --radius: 1rem;
+  --sidebar: #990048;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #990048;
+  --sidebar-accent: rgba(255, 255, 255, 0.1);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.15);
+  --sidebar-ring: #ffffff;
 }
 
 @theme inline {
@@ -85,8 +55,12 @@
   --font-serif: var(--font-noto-serif), 'Noto Serif', Georgia, serif;
   --font-mono: 'Geist Mono', monospace;
   --color-rose-velvet: var(--rose-velvet);
+  --color-rose-velvet-hover: var(--rose-velvet-hover);
   --color-petal-pink: var(--petal-pink);
+  --color-surface-container: var(--surface-container);
   --color-parchment: var(--parchment);
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
   --color-border-subtle: var(--border-subtle);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -115,7 +89,7 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -132,5 +106,38 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+  }
+}
+
+@layer utilities {
+  .label-eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .arrangement-card {
+    position: relative;
+    overflow: visible;
+    padding-top: 80px;
+  }
+  .arrangement-image {
+    position: absolute;
+    top: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+  }
+  @keyframes pulse-ring {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.15); opacity: 0.7; }
+  }
+  .animate-pulse-ring {
+    animation: pulse-ring 1.6s ease-in-out infinite;
   }
 }
